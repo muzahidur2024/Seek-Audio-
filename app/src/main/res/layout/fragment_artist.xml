@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.core.widget.NestedScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/dark_bg">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <!-- Artist hero header -->
+        <LinearLayout
+            android:id="@+id/layout_artist_header"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="20dp">
+
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginBottom="16dp">
+
+                <ImageView android:id="@+id/iv_artist_art" android:layout_width="80dp" android:layout_height="80dp" android:src="@drawable/ic_music_note" android:background="@drawable/bg_radius_24"/>
+
+                <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:layout_marginStart="14dp">
+                    <TextView android:id="@+id/tv_artist_name" android:layout_width="match_parent" android:layout_height="wrap_content" android:textColor="@color/dark_text" android:textSize="22sp" android:textStyle="bold"/>
+                    <TextView android:id="@+id/tv_artist_origin" android:layout_width="match_parent" android:layout_height="wrap_content" android:textColor="@color/purple_light" android:textSize="12sp" android:textStyle="bold" android:layout_marginTop="2dp"/>
+                    <com.google.android.material.chip.ChipGroup android:id="@+id/chip_group_tags" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" app:chipSpacingHorizontal="4dp"/>
+                </LinearLayout>
+
+            </LinearLayout>
+
+            <!-- Stats row -->
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="16dp">
+                <LinearLayout android:layout_width="0dp" android:layout_height="60dp" android:layout_weight="1" android:layout_marginEnd="8dp" android:orientation="vertical" android:gravity="center" android:background="@drawable/bg_card_border">
+                    <TextView android:id="@+id/tv_monthly_listeners" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="@color/dark_text" android:textSize="14sp" android:textStyle="bold"/>
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="LISTENERS" android:textColor="@color/dark_subtext" android:textSize="9sp" android:letterSpacing="0.1"/>
+                </LinearLayout>
+                <LinearLayout android:layout_width="0dp" android:layout_height="60dp" android:layout_weight="1" android:layout_marginEnd="8dp" android:orientation="vertical" android:gravity="center" android:background="@drawable/bg_card_border">
+                    <TextView android:id="@+id/tv_total_plays" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="@color/dark_text" android:textSize="14sp" android:textStyle="bold"/>
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="PLAYS" android:textColor="@color/dark_subtext" android:textSize="9sp" android:letterSpacing="0.1"/>
+                </LinearLayout>
+                <LinearLayout android:layout_width="0dp" android:layout_height="60dp" android:layout_weight="1" android:orientation="vertical" android:gravity="center" android:background="@drawable/bg_card_border">
+                    <TextView android:id="@+id/tv_formed" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="@color/dark_text" android:textSize="14sp" android:textStyle="bold"/>
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="FORMED" android:textColor="@color/dark_subtext" android:textSize="9sp" android:letterSpacing="0.1"/>
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Tip button -->
+            <Button
+                android:id="@+id/btn_tip_artist"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:text="◎ Tip Artist with SKR"
+                android:textColor="@color/white"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:background="@drawable/bg_gradient_solana"/>
+
+        </LinearLayout>
+
+        <!-- About section -->
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:paddingHorizontal="20dp" android:paddingBottom="20dp">
+
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="ABOUT" android:textColor="@color/dark_subtext" android:textSize="10sp" android:letterSpacing="0.14" android:layout_marginBottom="8dp"/>
+
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:background="@drawable/bg_card_border" android:padding="14dp" android:layout_marginBottom="20dp">
+                <TextView android:id="@+id/tv_artist_bio" android:layout_width="match_parent" android:layout_height="wrap_content" android:textColor="@color/dark_text" android:textSize="13sp" android:lineSpacingMultiplier="1.6"/>
+                <TextView android:id="@+id/tv_artist_members" android:layout_width="match_parent" android:layout_height="wrap_content" android:textColor="@color/dark_subtext" android:textSize="12sp" android:layout_marginTop="8dp"/>
+                <TextView android:id="@+id/tv_artist_wallet" android:layout_width="match_parent" android:layout_height="wrap_content" android:textColor="@color/dark_subtext" android:textSize="11sp" android:fontFamily="monospace" android:layout_marginTop="4dp"/>
+            </LinearLayout>
+
+            <!-- Tracks section -->
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="TRACKS" android:textColor="@color/dark_subtext" android:textSize="10sp" android:letterSpacing="0.14" android:layout_marginBottom="10dp"/>
+            <LinearLayout android:id="@+id/container_artist_tracks" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical"/>
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</androidx.core.widget.NestedScrollView>

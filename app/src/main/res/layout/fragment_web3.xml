@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.core.widget.NestedScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/dark_bg">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <!-- Not-connected state -->
+        <LinearLayout
+            android:id="@+id/layout_not_connected"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center_horizontal">
+
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="◎" android:textColor="@color/solana_purple" android:textSize="52sp" android:layout_marginBottom="16dp"/>
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/web3_title" android:textColor="@color/dark_text" android:textSize="20sp" android:textStyle="bold" android:layout_marginBottom="8dp"/>
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/web3_desc" android:textColor="@color/dark_subtext" android:textSize="13sp" android:gravity="center" android:lineSpacingMultiplier="1.5" android:layout_marginBottom="24dp"/>
+
+            <!-- Feature list -->
+            <LinearLayout android:id="@+id/container_features" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:layout_marginBottom="24dp"/>
+
+            <Button
+                android:id="@+id/btn_connect_wallet"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:text="@string/connect_wallet"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                android:textColor="@color/white"
+                android:background="@drawable/bg_gradient_solana"
+                android:layout_marginBottom="12dp"/>
+
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/no_wallet_desc" android:textColor="@color/dark_subtext" android:textSize="12sp" android:gravity="center"/>
+
+        </LinearLayout>
+
+        <!-- Connected state -->
+        <LinearLayout
+            android:id="@+id/layout_connected"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <!-- Wallet card -->
+            <LinearLayout
+                android:id="@+id/card_wallet"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/bg_wallet_card"
+                android:padding="18dp"
+                android:layout_marginBottom="16dp">
+
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginBottom="14dp">
+
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:id="@+id/tv_wallet_name" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="@color/solana_purple" android:textSize="10sp" android:letterSpacing="0.14" android:layout_marginBottom="4dp"/>
+                        <TextView android:id="@+id/tv_wallet_address" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="@color/dark_text" android:textSize="12sp" android:textStyle="bold" android:fontFamily="monospace"/>
+                    </LinearLayout>
+
+                    <Button android:id="@+id/btn_disconnect" style="@style/Widget.MaterialComponents.Button.OutlinedButton" android:layout_width="wrap_content" android:layout_height="36dp" android:text="@string/disconnect" android:textColor="@color/error" android:strokeColor="@color/error" android:textSize="11sp"/>
+
+                </LinearLayout>
+
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
+
+                    <LinearLayout android:layout_width="0dp" android:layout_height="80dp" android:layout_weight="1" android:layout_marginEnd="8dp" android:orientation="vertical" android:gravity="center_horizontal|bottom" android:background="@drawable/bg_balance_card" android:padding="12dp">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/sol_balance" android:textColor="@color/solana_green" android:textSize="10sp" android:letterSpacing="0.1" android:layout_marginBottom="4dp"/>
+                        <TextView android:id="@+id/tv_sol_balance" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0.000" android:textColor="@color/dark_text" android:textSize="20sp" android:textStyle="bold"/>
+                    </LinearLayout>
+
+                    <LinearLayout android:layout_width="0dp" android:layout_height="80dp" android:layout_weight="1" android:orientation="vertical" android:gravity="center_horizontal|bottom" android:background="@drawable/bg_balance_card" android:padding="12dp">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/skr_balance" android:textColor="@color/solana_purple" android:textSize="10sp" android:letterSpacing="0.1" android:layout_marginBottom="4dp"/>
+                        <TextView android:id="@+id/tv_skr_balance" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="@color/dark_text" android:textSize="20sp" android:textStyle="bold"/>
+                        <TextView android:id="@+id/tv_skr_pending" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="" android:textColor="@color/solana_green" android:textSize="10sp" android:fontFamily="bold" android:visibility="gone"/>
+                    </LinearLayout>
+
+                </LinearLayout>
+
+            </LinearLayout>
+
+            <!-- SKR Rewards panel -->
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:background="@drawable/bg_card_border" android:padding="16dp" android:layout_marginBottom="16dp">
+
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginBottom="12dp">
+                    <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="@string/skr_rewards" android:textColor="@color/dark_subtext" android:textSize="10sp" android:letterSpacing="0.14"/>
+                    <Button android:id="@+id/btn_claim_skr" android:layout_width="wrap_content" android:layout_height="36dp" android:text="Claim SKR" android:textSize="11sp" android:background="@drawable/bg_gradient_solana" android:textColor="@color/white" android:visibility="gone"/>
+                </LinearLayout>
+
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="70dp" android:layout_weight="1" android:layout_marginEnd="6dp" android:orientation="vertical" android:gravity="center" android:background="@drawable/bg_balance_card">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🔥" android:textSize="20sp"/>
+                        <TextView android:id="@+id/tv_streak" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0 days" android:textColor="@color/warning" android:textSize="12sp" android:textStyle="bold"/>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="STREAK" android:textColor="@color/dark_subtext" android:textSize="9sp" android:letterSpacing="0.1"/>
+                    </LinearLayout>
+                    <LinearLayout android:layout_width="0dp" android:layout_height="70dp" android:layout_weight="1" android:layout_marginEnd="6dp" android:orientation="vertical" android:gravity="center" android:background="@drawable/bg_balance_card">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🎵" android:textSize="20sp"/>
+                        <TextView android:id="@+id/tv_tracks_today" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0 tracks" android:textColor="@color/purple_primary" android:textSize="12sp" android:textStyle="bold"/>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="TODAY" android:textColor="@color/dark_subtext" android:textSize="9sp" android:letterSpacing="0.1"/>
+                    </LinearLayout>
+                    <LinearLayout android:layout_width="0dp" android:layout_height="70dp" android:layout_weight="1" android:orientation="vertical" android:gravity="center" android:background="@drawable/bg_balance_card">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="◎" android:textColor="@color/solana_green" android:textSize="20sp"/>
+                        <TextView android:id="@+id/tv_skr_earned" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="+0 SKR" android:textColor="@color/solana_green" android:textSize="12sp" android:textStyle="bold"/>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="EARNED" android:textColor="@color/dark_subtext" android:textSize="9sp" android:letterSpacing="0.1"/>
+                    </LinearLayout>
+                </LinearLayout>
+
+            </LinearLayout>
+
+            <!-- Activity feed -->
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/recent_activity" android:textColor="@color/dark_subtext" android:textSize="10sp" android:letterSpacing="0.14" android:layout_marginBottom="10dp"/>
+
+            <LinearLayout android:id="@+id/container_activity" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical"/>
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</androidx.core.widget.NestedScrollView>

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:id="@+id/libraryFragment"
+        android:icon="@drawable/ic_library"
+        android:title="@string/nav_library"/>
+
+    <item
+        android:id="@+id/playerFragment"
+        android:icon="@drawable/ic_play_circle"
+        android:title="@string/nav_player"/>
+
+    <item
+        android:id="@+id/equalizerFragment"
+        android:icon="@drawable/ic_equalizer"
+        android:title="@string/nav_equalizer"/>
+
+    <item
+        android:id="@+id/web3Fragment"
+        android:icon="@drawable/ic_web3"
+        android:title="@string/nav_web3"/>
+
+</menu>

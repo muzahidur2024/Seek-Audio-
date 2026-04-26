@@ -1,0 +1,17 @@
+.gradle/
+/build/
+/captures/
+/local.properties
+/.idea/
+*.iml
+
+# Module build output
+**/build/
+
+# Kotlin/Java
+*.class
+out/
+
+# OS/editor files
+.DS_Store
+Thumbs.db

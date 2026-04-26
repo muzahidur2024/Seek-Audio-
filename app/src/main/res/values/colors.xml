@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Brand -->
+    <color name="purple_primary">#7C3AED</color>
+    <color name="purple_light">#A78BFA</color>
+    <color name="purple_dark">#5B21B6</color>
+
+    <!-- Solana Web3 -->
+    <color name="solana_purple">#9945FF</color>
+    <color name="solana_green">#14F195</color>
+    <color name="solana_purple_alpha">#1A9945FF</color>
+    <color name="solana_green_alpha">#1A14F195</color>
+
+    <!-- Dark Theme -->
+    <color name="dark_bg">#08080F</color>
+    <color name="dark_surface">#10101A</color>
+    <color name="dark_card">#18182A</color>
+    <color name="dark_card2">#1E1E30</color>
+    <color name="dark_text">#F0EDF8</color>
+    <color name="dark_subtext">#6E6A90</color>
+    <color name="dark_border">#28263E</color>
+
+    <!-- Light Theme -->
+    <color name="light_bg">#F0EEF8</color>
+    <color name="light_surface">#FFFFFF</color>
+    <color name="light_card">#F4F2FF</color>
+    <color name="light_text">#0D0B1A</color>
+    <color name="light_subtext">#6B6890</color>
+    <color name="light_border">#DDD9FF</color>
+
+    <!-- Track accent colours (per track) -->
+    <color name="track_electronic">#7C3AED</color>
+    <color name="track_ambient">#0369A1</color>
+    <color name="track_hiphop">#B45309</color>
+    <color name="track_indie">#0F766E</color>
+    <color name="track_chill">#BE185D</color>
+
+    <!-- Status -->
+    <color name="error">#EF4444</color>
+    <color name="success">#22C55E</color>
+    <color name="warning">#F59E0B</color>
+    <color name="info">#3B82F6</color>
+
+    <!-- White / black alphas -->
+    <color name="white_10">#1AFFFFFF</color>
+    <color name="white_20">#33FFFFFF</color>
+    <color name="white_40">#66FFFFFF</color>
+    <color name="black_50">#80000000</color>
+    <color name="black_80">#CC000000</color>
+
+    <!-- Android required -->
+    <color name="purple_200">#FFBB86FC</color>
+    <color name="purple_500">#FF6200EE</color>
+    <color name="purple_700">#FF3700B3</color>
+    <color name="teal_200">#FF03DAC5</color>
+    <color name="teal_700">#FF018786</color>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+</resources>

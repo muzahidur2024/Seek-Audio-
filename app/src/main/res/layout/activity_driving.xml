@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/black">
+
+    <!-- Ambient glow background (tinted per track) -->
+    <View
+        android:id="@+id/view_ambient_glow"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:alpha="0.18"/>
+
+    <!-- Exit button -->
+    <Button
+        android:id="@+id/btn_exit_drive"
+        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+        android:layout_width="wrap_content"
+        android:layout_height="36dp"
+        android:text="@string/exit_drive"
+        android:textSize="11sp"
+        android:letterSpacing="0.12"
+        android:textColor="@color/white"
+        android:strokeColor="@color/white_20"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_margin="20dp"/>
+
+    <!-- Big album art -->
+    <ImageView
+        android:id="@+id/iv_drive_art"
+        android:layout_width="140dp"
+        android:layout_height="140dp"
+        android:src="@drawable/ic_music_note"
+        android:scaleType="centerCrop"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/tv_drive_title"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginBottom="16dp"/>
+
+    <!-- Song title -->
+    <TextView
+        android:id="@+id/tv_drive_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/unknown_title"
+        android:textColor="@color/white"
+        android:textSize="28sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:paddingHorizontal="24dp"
+        app:layout_constraintBottom_toTopOf="@id/tv_drive_artist"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
+
+    <!-- Artist -->
+    <TextView
+        android:id="@+id/tv_drive_artist"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/unknown_artist"
+        android:textColor="@color/purple_light"
+        android:textSize="18sp"
+        android:gravity="center"
+        android:layout_marginBottom="32dp"
+        app:layout_constraintBottom_toTopOf="@id/seek_drive"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
+
+    <!-- Progress bar -->
+    <SeekBar
+        android:id="@+id/seek_drive"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingHorizontal="28dp"
+        android:progressTint="@color/purple_primary"
+        android:progressBackgroundTint="@color/white_20"
+        android:layout_marginBottom="8dp"
+        app:layout_constraintBottom_toTopOf="@id/ll_drive_times"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
+
+    <!-- Time row -->
+    <LinearLayout
+        android:id="@+id/ll_drive_times"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingHorizontal="28dp"
+        android:layout_marginBottom="44dp"
+        app:layout_constraintBottom_toTopOf="@id/ll_drive_controls"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <TextView
+            android:id="@+id/tv_drive_current"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="0:00"
+            android:textColor="@color/white_40"
+            android:textSize="13sp"
+            android:fontFamily="monospace"/>
+
+        <View android:layout_width="0dp" android:layout_height="0dp" android:layout_weight="1"/>
+
+        <TextView
+            android:id="@+id/tv_drive_total"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="0:00"
+            android:textColor="@color/white_40"
+            android:textSize="13sp"
+            android:fontFamily="monospace"/>
+
+    </LinearLayout>
+
+    <!-- Big playback controls -->
+    <LinearLayout
+        android:id="@+id/ll_drive_controls"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:layout_marginBottom="40dp"
+        app:layout_constraintBottom_toTopOf="@id/ll_drive_secondary"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <ImageButton
+            android:id="@+id/btn_drive_prev"
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            android:background="@drawable/bg_circle_white10"
+            android:src="@drawable/ic_skip_previous"
+            android:padding="22dp"/>
+
+        <View android:layout_width="20dp" android:layout_height="0dp"/>
+
+        <ImageButton
+            android:id="@+id/btn_drive_play_pause"
+            android:layout_width="110dp"
+            android:layout_height="110dp"
+            android:background="@drawable/bg_circle_purple_gradient"
+            android:src="@drawable/ic_play"
+            android:padding="28dp"
+            android:elevation="8dp"/>
+
+        <View android:layout_width="20dp" android:layout_height="0dp"/>
+
+        <ImageButton
+            android:id="@+id/btn_drive_next"
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            android:background="@drawable/bg_circle_white10"
+            android:src="@drawable/ic_skip_next"
+            android:padding="22dp"/>
+
+    </LinearLayout>
+
+    <!-- Secondary controls (shuffle / repeat / sleep) -->
+    <LinearLayout
+        android:id="@+id/ll_drive_secondary"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:layout_marginBottom="32dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <ImageButton
+            android:id="@+id/btn_drive_shuffle"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:layout_marginHorizontal="10dp"
+            android:background="@drawable/bg_circle_white10"
+            android:src="@drawable/ic_shuffle"
+            android:alpha="0.45"
+            android:padding="16dp"/>
+
+        <ImageButton
+            android:id="@+id/btn_drive_repeat"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:layout_marginHorizontal="10dp"
+            android:background="@drawable/bg_circle_white10"
+            android:src="@drawable/ic_repeat"
+            android:alpha="0.45"
+            android:padding="16dp"/>
+
+        <ImageButton
+            android:id="@+id/btn_drive_sleep"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:layout_marginHorizontal="10dp"
+            android:background="@drawable/bg_circle_white10"
+            android:src="@drawable/ic_sleep"
+            android:alpha="0.45"
+            android:padding="16dp"/>
+
+    </LinearLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

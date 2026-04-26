@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Seek Audio</string>
+
+    <!-- Navigation -->
+    <string name="nav_player">Player</string>
+    <string name="nav_library">Library</string>
+    <string name="nav_equalizer">EQ</string>
+    <string name="nav_web3">Web3</string>
+
+    <!-- Player -->
+    <string name="play">Play</string>
+    <string name="pause">Pause</string>
+    <string name="next">Next</string>
+    <string name="previous">Previous</string>
+    <string name="shuffle">Shuffle</string>
+    <string name="repeat">Repeat</string>
+    <string name="like">Like</string>
+    <string name="queue">Queue</string>
+    <string name="lyrics">Lyrics</string>
+    <string name="sleep_timer">Sleep Timer</string>
+    <string name="speed">Speed</string>
+    <string name="crossfade">Crossfade</string>
+    <string name="unknown_title">Unknown Title</string>
+    <string name="unknown_artist">Unknown Artist</string>
+    <string name="unknown_album">Unknown Album</string>
+
+    <!-- Library -->
+    <string name="library">Library</string>
+    <string name="search_hint">Search songs, artists, albums…</string>
+    <string name="tab_all">All Songs</string>
+    <string name="tab_liked">Liked</string>
+    <string name="tab_recent">Recent</string>
+    <string name="tab_most_played">Top Played</string>
+    <string name="tab_nfts">NFTs</string>
+    <string name="no_songs_found">No songs found</string>
+    <string name="no_liked_songs">No liked songs yet</string>
+    <string name="songs_count">%d songs</string>
+
+    <!-- Equalizer -->
+    <string name="equalizer">Equalizer</string>
+    <string name="eq_enabled">EQ Enabled</string>
+    <string name="bass_boost">Bass Boost</string>
+    <string name="virtualizer">Virtualizer</string>
+    <string name="presets">Presets</string>
+    <string name="custom">Custom</string>
+
+    <!-- Sleep Timer -->
+    <string name="sleep_timer_title">Sleep Timer</string>
+    <string name="sleep_timer_desc">Music fades and stops automatically</string>
+    <string name="sleep_in">SLEEP IN</string>
+    <string name="cancel">Cancel</string>
+    <string name="fade_out">Fade Out</string>
+    <string name="end_of_track">End of Track</string>
+    <string name="after_this_track">After this track</string>
+    <string name="auto_stop">Auto stop</string>
+    <string name="sleep_5">5 min</string>
+    <string name="sleep_15">15 min</string>
+    <string name="sleep_30">30 min</string>
+    <string name="sleep_45">45 min</string>
+    <string name="sleep_60">1 hour</string>
+
+    <!-- Lyrics -->
+    <string name="no_lyrics">No lyrics available for this track</string>
+    <string name="sync_offset">Sync Offset</string>
+
+    <!-- Artist -->
+    <string name="about">About</string>
+    <string name="monthly_listeners">Monthly Listeners</string>
+    <string name="tracks">Tracks</string>
+    <string name="formed">Formed</string>
+
+    <!-- ID3 Editor -->
+    <string name="edit_tags">Edit Track Tags</string>
+    <string name="song_title">Song Title</string>
+    <string name="artist_name">Artist</string>
+    <string name="album_name">Album</string>
+    <string name="genre">Genre</string>
+    <string name="year">Year</string>
+    <string name="reset">Reset</string>
+    <string name="save_tags">Save Tags</string>
+    <string name="session_only">Changes apply to this session only</string>
+
+    <!-- Web3 -->
+    <string name="web3_title">Solana Web3 Hub</string>
+    <string name="web3_desc">Connect a wallet to unlock SKR rewards, play audio NFTs and tip artists. Fully optional.</string>
+    <string name="connect_wallet">Connect Wallet</string>
+    <string name="disconnect">Disconnect</string>
+    <string name="sol_balance">SOL BALANCE</string>
+    <string name="skr_balance">SKR BALANCE</string>
+    <string name="claim_skr">Claim %d SKR</string>
+    <string name="skr_rewards">SKR REWARDS</string>
+    <string name="recent_activity">RECENT ACTIVITY</string>
+    <string name="skip_wallet">Skip for now — continue without wallet</string>
+    <string name="no_wallet_desc">No wallet? Seek Audio works perfectly without one.</string>
+    <string name="tip_artist">Tip %s with SKR</string>
+    <string name="connect_to_tip">Connect wallet to tip this artist</string>
+    <string name="send_skr">Send %d SKR →</string>
+    <string name="signing">Signing with Seed Vault…</string>
+    <string name="tip_sent">Tip Sent!</string>
+    <string name="tip_success">%d SKR sent to %s</string>
+    <string name="pending">pending claim</string>
+    <string name="audio_nfts">Audio NFT Collection</string>
+    <string name="nfts_detected">%d NFTs detected in wallet</string>
+    <string name="your_nfts">YOUR AUDIO NFTs</string>
+
+    <!-- Driving Mode -->
+    <string name="driving_mode">Driving Mode</string>
+    <string name="exit_drive">EXIT DRIVE</string>
+
+    <!-- Permissions -->
+    <string name="permission_title">Storage Permission Needed</string>
+    <string name="permission_message">Seek Audio needs access to your audio files to build your music library.</string>
+    <string name="grant_permission">Grant Permission</string>
+
+    <!-- General -->
+    <string name="now_playing">NOW PLAYING</string>
+    <string name="connected">CONNECTED</string>
+    <string name="secure">✓ Secure</string>
+    <string name="seed_vault">Seed Vault Wallet</string>
+</resources>
