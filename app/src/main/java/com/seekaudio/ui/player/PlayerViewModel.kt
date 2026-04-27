@@ -67,6 +67,8 @@ class PlayerViewModel @Inject constructor(
     private var lastPersistMs = 0L
     private var pendingPlaybackRequest: PendingPlaybackRequest? = null
     private var lastPlayCountSongId: Long? = null
+    private var syncCurrentSongJob: Job? = null
+    private var lastObservedMediaItemKey: String? = null
 
     // ── EQ ───────────────────────────────────────────────────────────────────
     private val _eqState = MutableStateFlow(EqState())
@@ -149,6 +151,17 @@ class PlayerViewModel @Inject constructor(
 
     @androidx.media3.common.util.UnstableApi
     private val playerListener = object : Player.Listener {
+        override fun onEvents(player: Player, events: Player.Events) {
+            if (
+                events.contains(Player.EVENT_MEDIA_ITEM_TRANSITION) ||
+                events.contains(Player.EVENT_POSITION_DISCONTINUITY) ||
+                events.contains(Player.EVENT_TIMELINE_CHANGED) ||
+                events.contains(Player.EVENT_MEDIA_METADATA_CHANGED)
+            ) {
+                syncCurrentSongFromController()
+            }
+        }
+
         override fun onAudioSessionIdChanged(audioSessionId: Int) {
             _playerState.update { it.copy(audioSessionId = audioSessionId) }
             initAudioEffects(audioSessionId)
@@ -187,30 +200,29 @@ class PlayerViewModel @Inject constructor(
         }
     }
 
-    private fun syncCurrentSong() {
+    private suspend fun syncCurrentSong() {
         val ctrl = controller ?: return
-        viewModelScope.launch {
-            val idx = ctrl.currentMediaItemIndex.coerceAtLeast(0)
-            _currentIndex.value = idx
+        val idx = ctrl.currentMediaItemIndex.coerceAtLeast(0)
+        _currentIndex.value = idx
 
-            val currentItem = ctrl.currentMediaItem
-            val resolved = currentItem?.let { resolveSongFromMediaItem(it) }
-            val fallback = currentItem?.let { buildFallbackSong(it, ctrl) }
-            val song = resolved ?: fallback
+        val currentItem = ctrl.currentMediaItem
+        val resolved = currentItem?.let { resolveSongFromMediaItem(it) }
+        val fallback = currentItem?.let { buildFallbackSong(it, ctrl) }
+        val song = resolved ?: fallback
 
-            if (song != null) {
-                _currentSong.value = song
-                if (song.id > 0L && lastPlayCountSongId != song.id) {
-                    lastPlayCountSongId = song.id
-                    mediaRepository.incrementPlayCount(song.id)
-                }
+        if (song != null) {
+            _currentSong.value = song
+            if (song.id > 0L && lastPlayCountSongId != song.id) {
+                lastPlayCountSongId = song.id
+                mediaRepository.incrementPlayCount(song.id)
             }
         }
     }
 
     private fun syncCurrentSongFromController() {
         val ctrl = controller ?: return
-        viewModelScope.launch {
+        syncCurrentSongJob?.cancel()
+        syncCurrentSongJob = viewModelScope.launch {
             if (_queue.value.isEmpty()) {
                 val controllerItems = (0 until ctrl.mediaItemCount).map { index ->
                     ctrl.getMediaItemAt(index)
@@ -224,7 +236,14 @@ class PlayerViewModel @Inject constructor(
             }
 
             syncCurrentSong()
+            lastObservedMediaItemKey = buildCurrentMediaItemKey(ctrl)
         }
+    }
+
+    private fun buildCurrentMediaItemKey(ctrl: MediaController): String {
+        val idx = ctrl.currentMediaItemIndex
+        val mediaId = ctrl.currentMediaItem?.mediaId.orEmpty()
+        return "$idx|$mediaId"
     }
 
     private suspend fun resolveSongFromMediaItem(item: MediaItem): Song? {
@@ -261,6 +280,12 @@ class PlayerViewModel @Inject constructor(
                 val dur = controller?.duration?.takeIf { it > 0 } ?: 0L
                 _progressMs.value = pos
                 _playerState.update { it.copy(progressMs = pos, durationMs = dur) }
+                controller?.let { ctrl ->
+                    val currentKey = buildCurrentMediaItemKey(ctrl)
+                    if (currentKey != lastObservedMediaItemKey) {
+                        syncCurrentSongFromController()
+                    }
+                }
                 persistPlaybackState()
                 delay(500)
             }
@@ -518,10 +543,6 @@ class PlayerViewModel @Inject constructor(
 
     fun updateTags(songId: Long, title: String, artist: String, album: String, genre: String, year: Int) {
         viewModelScope.launch { mediaRepository.updateTags(songId, title, artist, album, genre, year) }
-    }
-
-    suspend fun getLyricsForSong(song: Song): List<LyricLine> {
-        return mediaRepository.getLyricsForSong(song)
     }
 
     fun scanDevice() { viewModelScope.launch { mediaRepository.scanDevice() } }

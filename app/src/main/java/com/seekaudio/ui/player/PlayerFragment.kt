@@ -56,10 +56,8 @@ class PlayerFragment : Fragment() {
         binding.btnRepeat.setOnClickListener    { vm.cycleRepeat() }
         binding.btnLike.setOnClickListener      { vm.currentSong.value?.let { vm.toggleLike(it) } }
         binding.btnQueue.setOnClickListener     { findNavController().navigate(R.id.action_player_to_queue) }
-        binding.btnEqualizer.setOnClickListener { findNavController().navigate(R.id.action_player_to_equalizer) }
         binding.btnSleep.setOnClickListener     { findNavController().navigate(R.id.action_player_to_sleep) }
         binding.btnDrive.setOnClickListener     { startActivity(Intent(requireContext(), DrivingActivity::class.java)) }
-        binding.btnLyrics.setOnClickListener    { findNavController().navigate(R.id.action_player_to_lyrics) }
         binding.tvArtistName.setOnClickListener { findNavController().navigate(R.id.action_player_to_artist) }
 
         // Speed button — cycles through speeds

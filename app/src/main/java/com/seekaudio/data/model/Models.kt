@@ -23,13 +23,6 @@ data class PlaylistSongCrossRef(
     val position: Int = 0,
 )
 
-// ─── Lyric line ───────────────────────────────────────────────────────────────
-
-data class LyricLine(
-    val timeMs: Long,       // timestamp in milliseconds
-    val text: String,
-)
-
 // ─── Audio NFT (Solana) ───────────────────────────────────────────────────────
 
 data class AudioNft(

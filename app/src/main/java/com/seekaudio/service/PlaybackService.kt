@@ -2,6 +2,9 @@ package com.seekaudio.service
 
 import android.app.PendingIntent
 import android.content.Intent
+import android.media.AudioFocusRequest
+import android.os.Build
+import android.media.AudioManager
 import android.os.Bundle
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
@@ -29,6 +32,9 @@ class PlaybackService : MediaSessionService() {
 
     private var mediaSession: MediaSession? = null
     private lateinit var player: ExoPlayer
+    private lateinit var audioManager: AudioManager
+    private var audioFocusRequest: AudioFocusRequest? = null
+    private var hasAudioFocus = false
     private val closeNotificationCommand = SessionCommand(CUSTOM_COMMAND_CLOSE_NOTIFICATION, Bundle.EMPTY)
     private val mediaSessionCallback = object : MediaSession.Callback {
         override fun onConnect(
@@ -78,6 +84,14 @@ class PlaybackService : MediaSessionService() {
 
     override fun onCreate() {
         super.onCreate()
+        audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            audioFocusRequest = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
+                .setOnAudioFocusChangeListener(audioFocusChangeListener)
+                .setWillPauseWhenDucked(true)
+                .setAcceptsDelayedFocusGain(false)
+                .build()
+        }
 
         // Build ExoPlayer with audio focus handling
         player = ExoPlayer.Builder(this)
@@ -86,10 +100,21 @@ class PlaybackService : MediaSessionService() {
                     .setUsage(C.USAGE_MEDIA)
                     .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
                     .build(),
-                /* handleAudioFocus= */ true,
+                /* handleAudioFocus= */ false,
             )
             .setHandleAudioBecomingNoisy(true) // auto-pause on headphone unplug
             .build()
+        player.addListener(object : Player.Listener {
+            override fun onIsPlayingChanged(isPlaying: Boolean) {
+                if (isPlaying) {
+                    if (!requestAudioFocus()) {
+                        player.pause()
+                    }
+                } else {
+                    abandonAudioFocus()
+                }
+            }
+        })
 
         // Session activity: tapping notification opens app
         val sessionIntent = PendingIntent.getActivity(
@@ -108,6 +133,7 @@ class PlaybackService : MediaSessionService() {
         mediaSession
 
     override fun onDestroy() {
+        abandonAudioFocus()
         mediaSession?.run {
             player.release()
             release()
@@ -127,7 +153,52 @@ class PlaybackService : MediaSessionService() {
             stop()
             clearMediaItems()
         }
+        abandonAudioFocus()
         stopSelf()
+    }
+
+    private val audioFocusChangeListener = AudioManager.OnAudioFocusChangeListener { focusChange ->
+        when (focusChange) {
+            AudioManager.AUDIOFOCUS_LOSS,
+            AudioManager.AUDIOFOCUS_LOSS_TRANSIENT,
+            AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK -> {
+                hasAudioFocus = false
+                if (player.isPlaying) {
+                    player.pause()
+                }
+            }
+
+            AudioManager.AUDIOFOCUS_GAIN -> {
+                hasAudioFocus = true
+            }
+        }
+    }
+
+    private fun requestAudioFocus(): Boolean {
+        if (hasAudioFocus) return true
+        val result = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            audioManager.requestAudioFocus(audioFocusRequest ?: return false)
+        } else {
+            @Suppress("DEPRECATION")
+            audioManager.requestAudioFocus(
+                audioFocusChangeListener,
+                AudioManager.STREAM_MUSIC,
+                AudioManager.AUDIOFOCUS_GAIN,
+            )
+        }
+        hasAudioFocus = result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
+        return hasAudioFocus
+    }
+
+    private fun abandonAudioFocus() {
+        if (!hasAudioFocus) return
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            audioFocusRequest?.let { audioManager.abandonAudioFocusRequest(it) }
+        } else {
+            @Suppress("DEPRECATION")
+            audioManager.abandonAudioFocus(audioFocusChangeListener)
+        }
+        hasAudioFocus = false
     }
 
     private companion object {

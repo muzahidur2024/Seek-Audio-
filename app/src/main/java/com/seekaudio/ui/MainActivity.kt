@@ -4,7 +4,6 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
-import android.view.View
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
@@ -16,9 +15,7 @@ import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.navOptions
 import com.seekaudio.R
 import com.seekaudio.databinding.ActivityMainBinding
-import com.seekaudio.ui.driving.DrivingActivity
 import com.seekaudio.ui.player.PlayerViewModel
-import com.seekaudio.utils.formatDuration
 import com.seekaudio.utils.hide
 import com.seekaudio.utils.show
 import dagger.hilt.android.AndroidEntryPoint
@@ -32,9 +29,10 @@ class MainActivity : AppCompatActivity() {
     val playerViewModel: PlayerViewModel by viewModels()
     private var isPlayerDestination = false
     private var syncingBottomNavSelection = false
+    private var latestMiniSongTitle: String = ""
+    private var latestMiniSongArtist: String = ""
     private val fullPlayerDestinations = setOf(
         R.id.playerFragment,
-        R.id.lyricsFragment,
         R.id.queueFragment,
         R.id.sleepTimerFragment,
         R.id.artistFragment,
@@ -80,7 +78,6 @@ class MainActivity : AppCompatActivity() {
             when (dest.id) {
                 R.id.libraryFragment -> binding.bottomNavigation.selectedItemId = R.id.libraryFragment
                 R.id.playerFragment -> binding.bottomNavigation.selectedItemId = R.id.playerFragment
-                R.id.lyricsFragment,
                 R.id.queueFragment,
                 R.id.sleepTimerFragment,
                 R.id.artistFragment -> binding.bottomNavigation.selectedItemId = R.id.playerFragment
@@ -91,28 +88,20 @@ class MainActivity : AppCompatActivity() {
 
             isPlayerDestination = dest.id in fullPlayerDestinations
             binding.bottomNavigation.show()
-            if (isPlayerDestination) {
-                binding.miniPlayer.root.hide()
-            } else {
-                if (playerViewModel.currentSong.value != null) {
-                    binding.miniPlayer.root.show()
-                } else {
-                    binding.miniPlayer.root.hide()
-                }
-            }
+            renderMiniPlayerVisibility()
         }
     }
 
     private fun setupMiniPlayer() {
         lifecycleScope.launch {
             playerViewModel.currentSong.collect { song ->
-                if (song != null && !isPlayerDestination) {
-                    binding.miniPlayer.root.show()
-                    binding.miniPlayer.tvMiniTitle.text  = song.title
-                    binding.miniPlayer.tvMiniArtist.text = song.artist
-                } else {
-                    binding.miniPlayer.root.hide()
+                if (song != null) {
+                    latestMiniSongTitle = song.title
+                    latestMiniSongArtist = song.artist
+                    binding.miniPlayer.tvMiniTitle.text = latestMiniSongTitle
+                    binding.miniPlayer.tvMiniArtist.text = latestMiniSongArtist
                 }
+                renderMiniPlayerVisibility()
             }
         }
 
@@ -131,6 +120,19 @@ class MainActivity : AppCompatActivity() {
         binding.miniPlayer.btnMiniNext.setOnClickListener      { playerViewModel.next() }
         binding.miniPlayer.root.setOnClickListener {
             navController.navigate(R.id.playerFragment)
+        }
+    }
+
+    private fun renderMiniPlayerVisibility() {
+        val hasSong = playerViewModel.currentSong.value != null
+        if (hasSong && !isPlayerDestination) {
+            if (latestMiniSongTitle.isNotBlank()) {
+                binding.miniPlayer.tvMiniTitle.text = latestMiniSongTitle
+            }
+            binding.miniPlayer.tvMiniArtist.text = latestMiniSongArtist
+            binding.miniPlayer.root.show()
+        } else {
+            binding.miniPlayer.root.hide()
         }
     }
 

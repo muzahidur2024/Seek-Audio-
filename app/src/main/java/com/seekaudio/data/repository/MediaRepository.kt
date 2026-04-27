@@ -4,20 +4,11 @@ import android.content.ContentUris
 import android.content.Context
 import android.net.Uri
 import android.os.Build
-import android.os.Environment
 import android.provider.MediaStore
-import com.seekaudio.data.model.LyricLine
 import com.seekaudio.data.model.Song
-import com.seekaudio.utils.LrcParser
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
-import org.json.JSONObject
-import java.io.File
-import java.net.HttpURLConnection
-import java.net.URL
-import java.net.URLEncoder
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -137,89 +128,6 @@ class MediaRepository @Inject constructor(
             songDao.deleteById(song.id)
         }
         deleted
-    }
-
-    suspend fun getLyricsForSong(song: Song): List<LyricLine> = withContext(Dispatchers.IO) {
-        getLocalLyrics(song)?.let { local ->
-            if (local.isNotEmpty()) return@withContext local
-        }
-        fetchLyricsFromLrcLib(song)
-    }
-
-    private fun getLocalLyrics(song: Song): List<LyricLine>? {
-        val candidates = buildLrcCandidates(song)
-        for (file in candidates) {
-            runCatching {
-                if (file.exists() && file.isFile) {
-                    val parsed = LrcParser.parse(file.readText())
-                    if (parsed.isNotEmpty()) return parsed
-                }
-            }
-        }
-        return null
-    }
-
-    private fun buildLrcCandidates(song: Song): List<File> {
-        val safeTitle = sanitizeFileName(song.title)
-        val safeArtist = sanitizeFileName(song.artist)
-        val names = listOf(
-            "$safeTitle.lrc",
-            "$safeArtist - $safeTitle.lrc",
-            "$safeArtist-$safeTitle.lrc",
-            "${safeTitle.lowercase()}.lrc",
-        ).distinct()
-
-        val roots = buildList {
-            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC)?.let(::add)
-            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)?.let(::add)
-            context.getExternalFilesDir(null)?.let(::add)
-        }.filterNotNull()
-
-        return roots.flatMap { root ->
-            names.flatMap { name ->
-                listOf(
-                    File(root, name),
-                    File(File(root, "Lyrics"), name),
-                    File(File(root, "LRC"), name),
-                )
-            }
-        }
-    }
-
-    private fun sanitizeFileName(value: String): String =
-        value.replace(Regex("""[\\/:*?"<>|]"""), "").trim().ifBlank { "unknown" }
-
-    private fun fetchLyricsFromLrcLib(song: Song): List<LyricLine> {
-        val url = buildLrcLibUrl(song)
-        val body = runCatching {
-            val connection = URL(url).openConnection() as HttpURLConnection
-            connection.requestMethod = "GET"
-            connection.connectTimeout = 5000
-            connection.readTimeout = 5000
-            connection.setRequestProperty("Accept", "application/json")
-            connection.inputStream.bufferedReader().use { it.readText() }
-        }.getOrNull() ?: return emptyList()
-
-        val json = runCatching { JSONObject(body) }.getOrNull() ?: return emptyList()
-        val synced = json.optString("syncedLyrics")
-        if (synced.isNotBlank()) {
-            val parsed = LrcParser.parse(synced)
-            if (parsed.isNotEmpty()) return parsed
-        }
-
-        val plain = json.optString("plainLyrics")
-        if (plain.isBlank()) return emptyList()
-        return plain.lines()
-            .filter { it.isNotBlank() }
-            .mapIndexed { idx, line -> LyricLine(timeMs = idx * 3_000L, text = line.trim()) }
-    }
-
-    private fun buildLrcLibUrl(song: Song): String {
-        val title = URLEncoder.encode(song.title, Charsets.UTF_8.name())
-        val artist = URLEncoder.encode(song.artist, Charsets.UTF_8.name())
-        val album = URLEncoder.encode(song.album, Charsets.UTF_8.name())
-        val duration = (song.duration / 1000).coerceAtLeast(0L)
-        return "https://lrclib.net/api/get?track_name=$title&artist_name=$artist&album_name=$album&duration=$duration"
     }
 
     // ── Playlist flows ────────────────────────────────────────────────────────

@@ -18,7 +18,6 @@
     <string name="repeat">Repeat</string>
     <string name="like">Like</string>
     <string name="queue">Queue</string>
-    <string name="lyrics">Lyrics</string>
     <string name="sleep_timer">Sleep Timer</string>
     <string name="speed">Speed</string>
     <string name="crossfade">Crossfade</string>
@@ -60,11 +59,6 @@
     <string name="sleep_30">30 min</string>
     <string name="sleep_45">45 min</string>
     <string name="sleep_60">1 hour</string>
-
-    <!-- Lyrics -->
-    <string name="no_lyrics">No lyrics available for this track</string>
-    <string name="sync_offset">Sync Offset</string>
-    <string name="lyrics_loading">Loading lyrics…</string>
 
     <!-- Artist -->
     <string name="about">About</string>

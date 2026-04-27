@@ -42,7 +42,6 @@
         <action android:id="@+id/action_player_to_queue"     app:destination="@id/queueFragment"/>
         <action android:id="@+id/action_player_to_equalizer" app:destination="@id/equalizerFragment"/>
         <action android:id="@+id/action_player_to_sleep"     app:destination="@id/sleepTimerFragment"/>
-        <action android:id="@+id/action_player_to_lyrics"    app:destination="@id/lyricsFragment"/>
         <action android:id="@+id/action_player_to_artist"    app:destination="@id/artistFragment"/>
 
     </fragment>
@@ -74,13 +73,6 @@
         android:name="com.seekaudio.ui.sleep.SleepTimerFragment"
         android:label="Sleep Timer"
         tools:layout="@layout/fragment_sleep_timer"/>
-
-    <!-- Lyrics -->
-    <fragment
-        android:id="@+id/lyricsFragment"
-        android:name="com.seekaudio.ui.lyrics.LyricsFragment"
-        android:label="Lyrics"
-        tools:layout="@layout/fragment_lyrics"/>
 
     <!-- Artist -->
     <fragment
