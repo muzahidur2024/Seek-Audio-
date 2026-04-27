@@ -38,6 +38,7 @@
                 android:layout_marginBottom="12dp"/>
 
             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/no_wallet_desc" android:textColor="@color/dark_subtext" android:textSize="12sp" android:gravity="center"/>
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/coming_soon" android:textColor="@color/error" android:textStyle="bold" android:textSize="16sp" android:gravity="center" android:layout_marginTop="6dp"/>
 
         </LinearLayout>
 
@@ -123,5 +124,5 @@
         </LinearLayout>
 
     </LinearLayout>
-
 </androidx.core.widget.NestedScrollView>
+

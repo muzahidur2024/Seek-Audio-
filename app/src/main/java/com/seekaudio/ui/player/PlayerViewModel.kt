@@ -2,6 +2,7 @@ package com.seekaudio.ui.player
 
 import android.content.ComponentName
 import android.content.Context
+import android.content.SharedPreferences
 import android.media.audiofx.BassBoost
 import android.media.audiofx.Equalizer
 import android.media.audiofx.Virtualizer
@@ -28,6 +29,10 @@ class PlayerViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val mediaRepository: MediaRepository,
 ) : ViewModel() {
+    private data class PendingPlaybackRequest(
+        val song: Song,
+        val queue: List<Song>,
+    )
 
     // ── MediaController ───────────────────────────────────────────────────────
     private var controllerFuture: ListenableFuture<MediaController>? = null
@@ -55,6 +60,13 @@ class PlayerViewModel @Inject constructor(
     val progressMs: StateFlow<Long> = _progressMs.asStateFlow()
 
     private var progressJob: Job? = null
+    private val playbackPrefs: SharedPreferences by lazy {
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    }
+    private var restoredState = false
+    private var lastPersistMs = 0L
+    private var pendingPlaybackRequest: PendingPlaybackRequest? = null
+    private var lastPlayCountSongId: Long? = null
 
     // ── EQ ───────────────────────────────────────────────────────────────────
     private val _eqState = MutableStateFlow(EqState())
@@ -104,8 +116,35 @@ class PlayerViewModel @Inject constructor(
         controllerFuture?.addListener({
             controller = controllerFuture?.get()
             controller?.addListener(playerListener)
+            syncPlayerStateFromController()
+            syncCurrentSongFromController()
+            restoreLastPlaybackIfNeeded()
+            processPendingPlaybackIfAny()
             startProgressTracking()
         }, MoreExecutors.directExecutor())
+    }
+
+    private fun syncPlayerStateFromController() {
+        val ctrl = controller ?: return
+        val repeat = when (ctrl.repeatMode) {
+            Player.REPEAT_MODE_ONE -> RepeatMode.ONE
+            Player.REPEAT_MODE_ALL -> RepeatMode.ALL
+            else -> RepeatMode.OFF
+        }
+        val progress = ctrl.currentPosition.coerceAtLeast(0L)
+        val duration = ctrl.duration.takeIf { it > 0L } ?: 0L
+        _progressMs.value = progress
+        _playerState.update {
+            it.copy(
+                isPlaying = ctrl.isPlaying,
+                repeatMode = repeat,
+                shuffleEnabled = ctrl.shuffleModeEnabled,
+                progressMs = progress,
+                durationMs = duration,
+                volume = ctrl.volume,
+                playbackSpeed = ctrl.playbackParameters.speed,
+            )
+        }
     }
 
     @androidx.media3.common.util.UnstableApi
@@ -117,6 +156,7 @@ class PlayerViewModel @Inject constructor(
 
         override fun onIsPlayingChanged(isPlaying: Boolean) {
             _playerState.update { it.copy(isPlaying = isPlaying) }
+            persistPlaybackState(force = true)
             if (isPlaying) {
                 startProgressTracking()
                 initAudioEffects()
@@ -125,8 +165,13 @@ class PlayerViewModel @Inject constructor(
             }
         }
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
-            syncCurrentSong()
+            syncCurrentSongFromController()
+            persistPlaybackState(force = true)
             if (_walletState.value.isConnected) earnSkr(2)
+        }
+        override fun onMediaMetadataChanged(mediaMetadata: MediaMetadata) {
+            syncCurrentSongFromController()
+            persistPlaybackState(force = true)
         }
         override fun onRepeatModeChanged(repeatMode: Int) {
             _playerState.update {
@@ -144,13 +189,68 @@ class PlayerViewModel @Inject constructor(
 
     private fun syncCurrentSong() {
         val ctrl = controller ?: return
-        val idx  = ctrl.currentMediaItemIndex
-        val q    = _queue.value
-        if (idx in q.indices) {
-            _currentSong.value  = q[idx]
+        viewModelScope.launch {
+            val idx = ctrl.currentMediaItemIndex.coerceAtLeast(0)
             _currentIndex.value = idx
-            viewModelScope.launch { mediaRepository.incrementPlayCount(q[idx].id) }
+
+            val currentItem = ctrl.currentMediaItem
+            val resolved = currentItem?.let { resolveSongFromMediaItem(it) }
+            val fallback = currentItem?.let { buildFallbackSong(it, ctrl) }
+            val song = resolved ?: fallback
+
+            if (song != null) {
+                _currentSong.value = song
+                if (song.id > 0L && lastPlayCountSongId != song.id) {
+                    lastPlayCountSongId = song.id
+                    mediaRepository.incrementPlayCount(song.id)
+                }
+            }
         }
+    }
+
+    private fun syncCurrentSongFromController() {
+        val ctrl = controller ?: return
+        viewModelScope.launch {
+            if (_queue.value.isEmpty()) {
+                val controllerItems = (0 until ctrl.mediaItemCount).map { index ->
+                    ctrl.getMediaItemAt(index)
+                }
+                val restoredQueue = controllerItems.mapNotNull { item ->
+                    resolveSongFromMediaItem(item)
+                }
+                if (restoredQueue.isNotEmpty()) {
+                    _queue.value = restoredQueue
+                }
+            }
+
+            syncCurrentSong()
+        }
+    }
+
+    private suspend fun resolveSongFromMediaItem(item: MediaItem): Song? {
+        val id = item.mediaId.toLongOrNull()
+        if (id != null && id > 0L) {
+            mediaRepository.getSongById(id)?.let { return it }
+        }
+        val uri = item.localConfiguration?.uri?.toString().orEmpty()
+        if (uri.isNotBlank()) {
+            mediaRepository.getSongByUri(uri)?.let { return it }
+        }
+        return null
+    }
+
+    private fun buildFallbackSong(item: MediaItem, ctrl: MediaController): Song {
+        val md = item.mediaMetadata
+        return Song(
+            id = item.mediaId.toLongOrNull() ?: -1L,
+            title = md.title?.toString().orEmpty().ifBlank { "Unknown Title" },
+            artist = md.artist?.toString().orEmpty().ifBlank { "Unknown Artist" },
+            album = md.albumTitle?.toString().orEmpty().ifBlank { "Unknown Album" },
+            albumId = 0L,
+            duration = ctrl.duration.takeIf { it > 0 } ?: 0L,
+            path = "",
+            uri = item.localConfiguration?.uri?.toString().orEmpty(),
+        )
     }
 
     private fun startProgressTracking() {
@@ -161,6 +261,7 @@ class PlayerViewModel @Inject constructor(
                 val dur = controller?.duration?.takeIf { it > 0 } ?: 0L
                 _progressMs.value = pos
                 _playerState.update { it.copy(progressMs = pos, durationMs = dur) }
+                persistPlaybackState()
                 delay(500)
             }
         }
@@ -172,8 +273,17 @@ class PlayerViewModel @Inject constructor(
     // PLAYBACK COMMANDS
     // ─────────────────────────────────────────────────────────────────────────
 
-    fun playSong(song: Song, queue: List<Song> = listOf(song)) {
-        val ctrl = controller ?: return
+    fun playSong(song: Song, queue: List<Song> = listOf(song)): Boolean {
+        val ctrl = controller
+        if (ctrl == null) {
+            pendingPlaybackRequest = PendingPlaybackRequest(song = song, queue = queue)
+            return false
+        }
+        playSongInternal(ctrl, song, queue)
+        return true
+    }
+
+    private fun playSongInternal(ctrl: MediaController, song: Song, queue: List<Song>) {
         _queue.value = queue
         val items = queue.map { s ->
             MediaItem.Builder()
@@ -193,15 +303,76 @@ class PlayerViewModel @Inject constructor(
         ctrl.play()
         _currentSong.value  = song
         _currentIndex.value = startIndex
+        persistPlaybackState(force = true)
+    }
+
+    private fun processPendingPlaybackIfAny() {
+        val request = pendingPlaybackRequest ?: return
+        pendingPlaybackRequest = null
+        val ctrl = controller ?: return
+        playSongInternal(ctrl, request.song, request.queue)
     }
 
     fun playPause()  { controller?.let { if (it.isPlaying) it.pause() else it.play() } }
-    fun next()       { controller?.seekToNextMediaItem() }
-    fun previous()   { controller?.let { if (it.currentPosition > 3000) it.seekTo(0) else it.seekToPreviousMediaItem() } }
+    fun next() {
+        controller?.let { ctrl ->
+            val count = ctrl.mediaItemCount
+            if (count <= 1) {
+                moveByLibraryOffset(+1)
+                return
+            }
+            val current = ctrl.currentMediaItemIndex.coerceAtLeast(0)
+            val target = when {
+                current < count - 1 -> current + 1
+                ctrl.repeatMode == Player.REPEAT_MODE_ALL -> 0
+                else -> current
+            }
+            if (target != current) ctrl.seekToDefaultPosition(target)
+        }
+    }
+    fun previous() {
+        controller?.let { ctrl ->
+            if (ctrl.currentPosition > 3000L) {
+                ctrl.seekTo(0L)
+                return
+            }
+            val count = ctrl.mediaItemCount
+            if (count <= 1) {
+                moveByLibraryOffset(-1)
+                return
+            }
+            val current = ctrl.currentMediaItemIndex.coerceAtLeast(0)
+            val target = when {
+                current > 0 -> current - 1
+                ctrl.repeatMode == Player.REPEAT_MODE_ALL -> count - 1
+                else -> current
+            }
+            if (target != current) ctrl.seekToDefaultPosition(target) else ctrl.seekTo(0L)
+        }
+    }
+
+    private fun moveByLibraryOffset(offset: Int) {
+        viewModelScope.launch {
+            val songs = mediaRepository.getAllSongsSnapshot()
+                .sortedBy { it.title.lowercase() }
+            if (songs.isEmpty()) return@launch
+            val current = _currentSong.value
+            val currentIndex = songs.indexOfFirst { song ->
+                song.id == current?.id || (current != null && song.uri == current.uri)
+            }.takeIf { it >= 0 } ?: 0
+            val target = (currentIndex + offset).coerceIn(0, songs.lastIndex)
+            if (target != currentIndex) {
+                playSong(songs[target], songs)
+            } else if (offset < 0) {
+                seekTo(0L)
+            }
+        }
+    }
 
     fun seekTo(positionMs: Long) {
         controller?.seekTo(positionMs)
         _progressMs.value = positionMs
+        persistPlaybackState(force = true)
     }
 
     fun setVolume(volume: Float) {
@@ -232,11 +403,125 @@ class PlayerViewModel @Inject constructor(
     fun setSearch(query: String) { _searchQuery.value = query }
 
     fun toggleLike(song: Song) {
-        viewModelScope.launch { mediaRepository.setLiked(song.id, !song.isLiked) }
+        val liked = !song.isLiked
+        viewModelScope.launch {
+            mediaRepository.setLiked(song.id, liked)
+            if (_currentSong.value?.id == song.id) {
+                _currentSong.update { it?.copy(isLiked = liked) }
+            }
+        }
+    }
+
+    fun enqueueSong(song: Song): Boolean {
+        val ctrl = controller ?: return false
+        val item = MediaItem.Builder()
+            .setUri(song.contentUri)
+            .setMediaId(song.id.toString())
+            .setMediaMetadata(
+                MediaMetadata.Builder()
+                    .setTitle(song.title)
+                    .setArtist(song.artist)
+                    .setAlbumTitle(song.album)
+                    .build()
+            ).build()
+        return runCatching {
+            ctrl.addMediaItem(item)
+            viewModelScope.launch {
+                syncQueueWithController()
+            }
+            persistPlaybackState(force = true)
+            true
+        }.getOrDefault(false)
+    }
+
+    private suspend fun syncQueueWithController() {
+        val ctrl = controller ?: return
+        val rebuiltQueue = (0 until ctrl.mediaItemCount).mapNotNull { index ->
+            resolveSongFromMediaItem(ctrl.getMediaItemAt(index))
+        }
+        if (rebuiltQueue.isNotEmpty()) {
+            _queue.value = rebuiltQueue
+        }
+        syncCurrentSong()
+    }
+
+    private fun persistPlaybackState(force: Boolean = false) {
+        val now = System.currentTimeMillis()
+        if (!force && now - lastPersistMs < 2000L) return
+        val song = _currentSong.value ?: return
+        val ctrl = controller ?: return
+        val positionMs = ctrl.currentPosition.coerceAtLeast(0L)
+        playbackPrefs.edit()
+            .putLong(KEY_LAST_SONG_ID, song.id)
+            .putString(KEY_LAST_SONG_URI, song.uri)
+            .putLong(KEY_LAST_POSITION_MS, positionMs)
+            .putBoolean(KEY_LAST_WAS_PLAYING, ctrl.isPlaying)
+            .apply()
+        lastPersistMs = now
+    }
+
+    fun savePlaybackStateNow() {
+        persistPlaybackState(force = true)
+    }
+
+    private fun restoreLastPlaybackIfNeeded() {
+        if (restoredState) return
+        restoredState = true
+        if (pendingPlaybackRequest != null) return
+
+        val ctrl = controller ?: return
+        if (ctrl.mediaItemCount > 0) return
+
+        val savedPosition = playbackPrefs.getLong(KEY_LAST_POSITION_MS, 0L).coerceAtLeast(0L)
+        val savedSongId = playbackPrefs.getLong(KEY_LAST_SONG_ID, -1L)
+        val savedSongUri = playbackPrefs.getString(KEY_LAST_SONG_URI, null).orEmpty()
+        if (savedSongId <= 0L && savedSongUri.isBlank()) return
+
+        viewModelScope.launch {
+            val restoredSong = when {
+                savedSongId > 0L -> mediaRepository.getSongById(savedSongId)
+                savedSongUri.isNotBlank() -> mediaRepository.getSongByUri(savedSongUri)
+                else -> null
+            } ?: return@launch
+
+            _queue.value = listOf(restoredSong)
+            _currentSong.value = restoredSong
+            _currentIndex.value = 0
+
+            val item = MediaItem.Builder()
+                .setUri(restoredSong.contentUri)
+                .setMediaId(restoredSong.id.toString())
+                .setMediaMetadata(
+                    MediaMetadata.Builder()
+                        .setTitle(restoredSong.title)
+                        .setArtist(restoredSong.artist)
+                        .setAlbumTitle(restoredSong.album)
+                        .build()
+                )
+                .build()
+
+            ctrl.setMediaItem(item, savedPosition)
+            ctrl.prepare()
+            if (savedPosition > 0L) _progressMs.value = savedPosition
+            // Always restore in paused state on app launch.
+            ctrl.pause()
+        }
+    }
+
+    suspend fun deleteSongFromDeviceAndLibrary(song: Song): Boolean {
+        return mediaRepository.deleteFromDeviceAndLibrary(song)
+    }
+
+    suspend fun deleteSongFromLibrary(songId: Long) {
+        mediaRepository.deleteFromLibrary(songId)
     }
 
     fun updateTags(songId: Long, title: String, artist: String, album: String, genre: String, year: Int) {
         viewModelScope.launch { mediaRepository.updateTags(songId, title, artist, album, genre, year) }
+    }
+
+    suspend fun getLyricsForSong(song: Song): List<LyricLine> {
+        return mediaRepository.getLyricsForSong(song)
     }
 
     fun scanDevice() { viewModelScope.launch { mediaRepository.scanDevice() } }
@@ -247,28 +532,47 @@ class PlayerViewModel @Inject constructor(
 
     @androidx.media3.common.util.UnstableApi
     private fun initAudioEffects(audioSessionId: Int? = null) {
-        val sessionId = audioSessionId ?: _playerState.value.audioSessionId
-        if (sessionId <= 0) return
+        val preferredSession = audioSessionId ?: _playerState.value.audioSessionId
+        val candidateSessions = buildList {
+            if (preferredSession > 0) add(preferredSession)
+            if (_playerState.value.audioSessionId > 0) add(_playerState.value.audioSessionId)
+            // Fallback for devices where player session is not exposed reliably.
+            add(0)
+        }.distinct()
 
-        try {
-            // If a specific audioSessionId is provided, we should re-initialize
-            val forceReinit = audioSessionId != null && audioSessionId > 0
+        var initialized = false
+        var lastError: Exception? = null
 
-            if (equalizer == null || forceReinit) {
-                equalizer?.release()
-                equalizer = Equalizer(0, sessionId).apply { enabled = _eqState.value.enabled }
+        for (sessionId in candidateSessions) {
+            try {
+                val forceReinit = audioSessionId != null
+                if (equalizer == null || forceReinit) {
+                    equalizer?.release()
+                    equalizer = Equalizer(0, sessionId)
+                }
+                if (bassBoostFx == null || forceReinit) {
+                    bassBoostFx?.release()
+                    bassBoostFx = BassBoost(0, sessionId)
+                }
+                if (virtualizerFx == null || forceReinit) {
+                    virtualizerFx?.release()
+                    virtualizerFx = Virtualizer(0, sessionId)
+                }
+                applyEqToEffect()
+                equalizer?.enabled = _eqState.value.enabled
+                bassBoostFx?.enabled = _eqState.value.bassBoost
+                virtualizerFx?.enabled = _eqState.value.virtualizer
+                if (_eqState.value.bassBoost) bassBoostFx?.setStrength(500)
+                if (_eqState.value.virtualizer) virtualizerFx?.setStrength(500)
+                initialized = true
+                break
+            } catch (e: Exception) {
+                lastError = e
             }
-            if (bassBoostFx == null || forceReinit) {
-                bassBoostFx?.release()
-                bassBoostFx = BassBoost(0, sessionId).apply { enabled = _eqState.value.bassBoost }
-            }
-            if (virtualizerFx == null || forceReinit) {
-                virtualizerFx?.release()
-                virtualizerFx = Virtualizer(0, sessionId).apply { enabled = _eqState.value.virtualizer }
-            }
-            applyEqToEffect()
-        } catch (e: Exception) {
-            android.util.Log.e("PlayerViewModel", "Failed to init audio effects", e)
+        }
+
+        if (!initialized) {
+            android.util.Log.e("PlayerViewModel", "Failed to init audio effects on all session candidates", lastError)
         }
     }
 
@@ -277,12 +581,15 @@ class PlayerViewModel @Inject constructor(
         val bands = _eqState.value.bands
         try {
             val numBands = eq.numberOfBands.toInt()
+            val range = eq.bandLevelRange
+            val minMb = range.getOrNull(0)?.toInt() ?: -1500
+            val maxMb = range.getOrNull(1)?.toInt() ?: 1500
             bands.take(numBands).forEachIndexed { i, db ->
-                val milliDb = (db * 100).toInt().toShort() // convert dB to millibels
+                val milliDb = (db * 100).toInt().coerceIn(minMb, maxMb).toShort()
                 eq.setBandLevel(i.toShort(), milliDb)
             }
         } catch (e: Exception) {
-            // Suppress — some devices don't support all bands
+            android.util.Log.w("PlayerViewModel", "Failed applying EQ band levels", e)
         }
     }
 
@@ -300,7 +607,23 @@ class PlayerViewModel @Inject constructor(
     }
 
     fun toggleBassBoost() {
-        val enabled = !_eqState.value.bassBoost
+        setBassBoostEnabled(!_eqState.value.bassBoost)
+    }
+
+    fun toggleVirtualizer() {
+        setVirtualizerEnabled(!_eqState.value.virtualizer)
+    }
+
+    fun toggleEq() {
+        setEqEnabled(!_eqState.value.enabled)
+    }
+
+    fun setEqEnabled(enabled: Boolean) {
+        _eqState.update { it.copy(enabled = enabled) }
+        equalizer?.enabled = enabled
+    }
+
+    fun setBassBoostEnabled(enabled: Boolean) {
         _eqState.update { it.copy(bassBoost = enabled) }
         bassBoostFx?.let {
             it.enabled = enabled
@@ -308,19 +631,12 @@ class PlayerViewModel @Inject constructor(
         }
     }
 
-    fun toggleVirtualizer() {
-        val enabled = !_eqState.value.virtualizer
+    fun setVirtualizerEnabled(enabled: Boolean) {
         _eqState.update { it.copy(virtualizer = enabled) }
         virtualizerFx?.let {
             it.enabled = enabled
             if (enabled) it.setStrength(500)
         }
-    }
-
-    fun toggleEq() {
-        val enabled = !_eqState.value.enabled
-        _eqState.update { it.copy(enabled = enabled) }
-        equalizer?.enabled = enabled
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -404,6 +720,7 @@ class PlayerViewModel @Inject constructor(
     @androidx.media3.common.util.UnstableApi
     override fun onCleared() {
         super.onCleared()
+        persistPlaybackState(force = true)
         stopProgressTracking()
         sleepJob?.cancel()
         controller?.removeListener(playerListener)
@@ -411,5 +728,13 @@ class PlayerViewModel @Inject constructor(
         equalizer?.release()
         bassBoostFx?.release()
         virtualizerFx?.release()
+    }
+
+    private companion object {
+        const val PREFS_NAME = "playback_state"
+        const val KEY_LAST_SONG_ID = "last_song_id"
+        const val KEY_LAST_SONG_URI = "last_song_uri"
+        const val KEY_LAST_POSITION_MS = "last_position_ms"
+        const val KEY_LAST_WAS_PLAYING = "last_was_playing"
     }
 }

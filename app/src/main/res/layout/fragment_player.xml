@@ -280,66 +280,90 @@
 
         </LinearLayout>
 
-        <!-- Feature chips row -->
-        <HorizontalScrollView
+        <!-- Feature controls -->
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:scrollbars="none"
+            android:orientation="vertical"
             android:layout_marginBottom="8dp">
 
             <LinearLayout
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:gravity="center_vertical">
-
-                <Button
-                    android:id="@+id/btn_speed"
-                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="36dp"
-                    android:text="1.0× Speed"
-                    android:textSize="11sp"
-                    android:layout_marginEnd="8dp"/>
-
-                <Button
-                    android:id="@+id/btn_crossfade"
-                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="36dp"
-                    android:text="⟺ Crossfade"
-                    android:textSize="11sp"
-                    android:layout_marginEnd="8dp"/>
-
-                <Button
-                    android:id="@+id/btn_lyrics"
-                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="36dp"
-                    android:text="✦ Lyrics"
-                    android:textSize="11sp"
-                    android:layout_marginEnd="8dp"/>
-
-                <Button
-                    android:id="@+id/btn_equalizer"
-                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="36dp"
-                    android:text="⟁ EQ"
-                    android:textSize="11sp"
-                    android:layout_marginEnd="8dp"/>
+                android:layout_marginBottom="8dp">
 
                 <Button
                     android:id="@+id/btn_sleep"
                     style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                    android:layout_width="wrap_content"
+                    android:layout_width="0dp"
                     android:layout_height="36dp"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="8dp"
                     android:text="💤 Sleep"
-                    android:textSize="11sp"/>
+                    android:textSize="11sp" />
 
+                <Button
+                    android:id="@+id/btn_drive"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="0dp"
+                    android:layout_height="36dp"
+                    android:layout_weight="1"
+                    android:text="@string/driving_mode"
+                    android:textSize="11sp" />
             </LinearLayout>
 
-        </HorizontalScrollView>
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="8dp">
+
+                <Button
+                    android:id="@+id/btn_speed"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="0dp"
+                    android:layout_height="36dp"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="8dp"
+                    android:text="1.0× Speed"
+                    android:textSize="11sp" />
+
+                <Button
+                    android:id="@+id/btn_crossfade"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="0dp"
+                    android:layout_height="36dp"
+                    android:layout_weight="1"
+                    android:text="⟺ Crossfade"
+                    android:textSize="11sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <Button
+                    android:id="@+id/btn_lyrics"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="0dp"
+                    android:layout_height="36dp"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="8dp"
+                    android:text="✦ Lyrics"
+                    android:textSize="11sp" />
+
+                <Button
+                    android:id="@+id/btn_equalizer"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="0dp"
+                    android:layout_height="36dp"
+                    android:layout_weight="1"
+                    android:text="⟁ EQ"
+                    android:textSize="11sp" />
+            </LinearLayout>
+        </LinearLayout>
 
     </LinearLayout>
 

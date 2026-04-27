@@ -15,6 +15,8 @@ import com.seekaudio.databinding.ItemSongBinding
 import com.seekaudio.utils.formatDuration
 import com.seekaudio.utils.hide
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
@@ -36,8 +38,6 @@ class QueueFragment : Fragment() {
 
         val adapter = QueueAdapter(
             onItemClick   = { song -> vm.playSong(song, vm.queue.value) },
-            getCurrentIdx = { vm.currentIndex.value },
-            isPlaying     = { vm.playerState.value.isPlaying },
         )
 
         binding.rvQueue.apply {
@@ -51,7 +51,20 @@ class QueueFragment : Fragment() {
                     vm.queue.collect { queue -> adapter.submitQueue(queue) }
                 }
                 launch {
-                    vm.currentIndex.collect { adapter.notifyDataSetChanged() }
+                    vm.currentSong
+                        .map { it?.id }
+                        .distinctUntilChanged()
+                        .collect { songId ->
+                            adapter.updatePlaybackState(songId, vm.playerState.value.isPlaying)
+                        }
+                }
+                launch {
+                    vm.playerState
+                        .map { it.isPlaying }
+                        .distinctUntilChanged()
+                        .collect { isPlaying ->
+                            adapter.updatePlaybackState(vm.currentSong.value?.id, isPlaying)
+                        }
                 }
             }
         }
@@ -64,14 +77,34 @@ class QueueFragment : Fragment() {
 
 class QueueAdapter(
     private val onItemClick:   (Song) -> Unit,
-    private val getCurrentIdx: () -> Int,
-    private val isPlaying:     () -> Boolean,
 ) : RecyclerView.Adapter<QueueAdapter.QueueViewHolder>() {
 
     private val items = mutableListOf<Song>()
+    private var activeSongId: Long? = null
+    private var playbackActive: Boolean = false
 
     fun submitQueue(queue: List<Song>) {
         items.clear(); items.addAll(queue); notifyDataSetChanged()
+    }
+
+    fun updatePlaybackState(songId: Long?, isPlaying: Boolean) {
+        val oldSongId = activeSongId
+        val oldPlaying = playbackActive
+        activeSongId = songId
+        playbackActive = isPlaying
+
+        if (oldSongId != songId) {
+            notifySongChanged(oldSongId)
+            notifySongChanged(songId)
+        } else if (oldPlaying != isPlaying) {
+            notifySongChanged(songId)
+        }
+    }
+
+    private fun notifySongChanged(songId: Long?) {
+        val id = songId ?: return
+        val index = items.indexOfFirst { it.id == id }
+        if (index != -1) notifyItemChanged(index)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): QueueViewHolder {
@@ -80,7 +113,7 @@ class QueueAdapter(
     }
 
     override fun onBindViewHolder(holder: QueueViewHolder, position: Int) =
-        holder.bind(items[position], position == getCurrentIdx())
+        holder.bind(items[position], items[position].id == activeSongId)
 
     override fun getItemCount() = items.size
 
@@ -93,7 +126,7 @@ class QueueAdapter(
             b.btnLike.hide()
             b.btnEdit.hide()
             b.waveformIndicator.visibility =
-                if (isCurrent && isPlaying()) View.VISIBLE else View.GONE
+                if (isCurrent && playbackActive) View.VISIBLE else View.GONE
             b.root.setOnClickListener { onItemClick(song) }
         }
     }

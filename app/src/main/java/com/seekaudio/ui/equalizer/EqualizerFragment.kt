@@ -84,9 +84,15 @@ class EqualizerFragment : Fragment() {
     }
 
     private fun setupToggles() {
-        binding.switchEq.setOnCheckedChangeListener       { _, _ -> vm.toggleEq() }
-        binding.switchBassBoost.setOnCheckedChangeListener { _, _ -> vm.toggleBassBoost() }
-        binding.switchVirtualizer.setOnCheckedChangeListener { _, _ -> vm.toggleVirtualizer() }
+        binding.switchEq.setOnCheckedChangeListener { _, isChecked ->
+            if (!updatingFromState) vm.setEqEnabled(isChecked)
+        }
+        binding.switchBassBoost.setOnCheckedChangeListener { _, isChecked ->
+            if (!updatingFromState) vm.setBassBoostEnabled(isChecked)
+        }
+        binding.switchVirtualizer.setOnCheckedChangeListener { _, isChecked ->
+            if (!updatingFromState) vm.setVirtualizerEnabled(isChecked)
+        }
     }
 
     private fun observeEqState() {

@@ -23,6 +23,7 @@ import com.seekaudio.ui.player.PlayerViewModel
 import com.seekaudio.utils.formatDuration
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
 
 @AndroidEntryPoint
 class LyricsFragment : Fragment() {
@@ -34,6 +35,7 @@ class LyricsFragment : Fragment() {
     private lateinit var lyricsAdapter: LyricsAdapter
     private var syncOffsetMs = 0L
     private var activeIndex  = 0
+    private var lyricsLoadJob: Job? = null
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentLyricsBinding.inflate(inflater, container, false)
@@ -73,6 +75,7 @@ class LyricsFragment : Fragment() {
             syncOffsetMs += 500
             updateOffsetLabel()
         }
+        updateOffsetLabel()
 
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -80,10 +83,7 @@ class LyricsFragment : Fragment() {
                     vm.currentSong.collect { song ->
                         binding.tvLyricsTitle.text  = song?.title  ?: ""
                         binding.tvLyricsArtist.text = song?.artist ?: ""
-                        // NOTE: In a real app, fetch .lrc file from storage or online.
-                        // For demo, showing empty state.
-                        binding.tvNoLyrics.visibility = View.VISIBLE
-                        lyricsAdapter.submitList(emptyList())
+                        loadLyrics(song)
                     }
                 }
 
@@ -111,8 +111,53 @@ class LyricsFragment : Fragment() {
     }
 
     private fun updateOffsetLabel() {
-        val seconds = syncOffsetMs / 1000.0
-        binding.tvOffset.text = if (seconds >= 0) "+${seconds}s" else "${seconds}s"
+        val seconds = syncOffsetMs / 1000f
+        binding.tvOffset.text = String.format("%+.1fs", seconds)
+    }
+
+    private fun loadLyrics(song: com.seekaudio.data.model.Song?) {
+        lyricsLoadJob?.cancel()
+        activeIndex = 0
+        syncOffsetMs = 0L
+        updateOffsetLabel()
+        if (song == null) {
+            lyricsAdapter.submitList(emptyList())
+            showEmpty(getString(R.string.no_lyrics))
+            return
+        }
+
+        showLoading()
+        lyricsLoadJob = viewLifecycleOwner.lifecycleScope.launch {
+            val lines = vm.getLyricsForSong(song)
+            if (!isAdded || _binding == null) return@launch
+
+            lyricsAdapter.submitList(lines)
+            if (lines.isEmpty()) {
+                showEmpty(getString(R.string.no_lyrics))
+            } else {
+                showLyrics()
+            }
+        }
+    }
+
+    private fun showLoading() {
+        binding.progressLyrics.visibility = View.VISIBLE
+        binding.tvNoLyrics.visibility = View.VISIBLE
+        binding.tvNoLyrics.text = getString(R.string.lyrics_loading)
+        binding.rvLyrics.visibility = View.INVISIBLE
+    }
+
+    private fun showEmpty(message: String) {
+        binding.progressLyrics.visibility = View.GONE
+        binding.tvNoLyrics.visibility = View.VISIBLE
+        binding.tvNoLyrics.text = message
+        binding.rvLyrics.visibility = View.INVISIBLE
+    }
+
+    private fun showLyrics() {
+        binding.progressLyrics.visibility = View.GONE
+        binding.tvNoLyrics.visibility = View.GONE
+        binding.rvLyrics.visibility = View.VISIBLE
     }
 
     override fun onDestroyView() { super.onDestroyView(); _binding = null }

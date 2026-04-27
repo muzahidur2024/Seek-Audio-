@@ -33,33 +33,54 @@
 
         <!-- Sync offset row -->
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginTop="8dp">
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="SYNC" android:textColor="@color/dark_subtext" android:textSize="10sp" android:letterSpacing="0.12" android:layout_marginEnd="8dp"/>
-            <Button android:id="@+id/btn_offset_minus" style="@style/Widget.MaterialComponents.Button.OutlinedButton" android:layout_width="wrap_content" android:layout_height="28dp" android:text="-0.5s" android:textSize="11sp" android:layout_marginEnd="6dp"/>
-            <TextView android:id="@+id/tv_offset" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0.0s" android:textColor="@color/dark_subtext" android:textSize="11sp" android:fontFamily="monospace" android:layout_marginEnd="6dp"/>
-            <Button android:id="@+id/btn_offset_plus" style="@style/Widget.MaterialComponents.Button.OutlinedButton" android:layout_width="wrap_content" android:layout_height="28dp" android:text="+0.5s" android:textSize="11sp"/>
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="SYNC" android:textColor="@color/dark_text" android:textSize="11sp" android:textStyle="bold" android:letterSpacing="0.08" android:layout_marginEnd="8dp"/>
+            <Button android:id="@+id/btn_offset_minus" style="@style/Widget.MaterialComponents.Button.OutlinedButton" android:layout_width="wrap_content" android:layout_height="30dp" android:minWidth="52dp" android:text="-0.5s" android:textSize="11sp" android:layout_marginEnd="8dp"/>
+            <TextView android:id="@+id/tv_offset" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="+0.0s" android:textColor="@color/purple_light" android:textSize="12sp" android:textStyle="bold" android:fontFamily="monospace" android:layout_marginEnd="8dp"/>
+            <Button android:id="@+id/btn_offset_plus" style="@style/Widget.MaterialComponents.Button.OutlinedButton" android:layout_width="wrap_content" android:layout_height="30dp" android:minWidth="52dp" android:text="+0.5s" android:textSize="11sp"/>
         </LinearLayout>
 
     </LinearLayout>
 
-    <!-- Lyrics scroll -->
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rv_lyrics"
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1"
-        android:paddingVertical="16dp"
-        android:paddingHorizontal="20dp"
-        android:clipToPadding="false"
-        android:scrollbars="none"/>
+        android:layout_weight="1">
 
-    <TextView
-        android:id="@+id/tv_no_lyrics"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="@string/no_lyrics"
-        android:textColor="@color/dark_subtext"
-        android:gravity="center"
-        android:padding="32dp"
-        android:visibility="gone"/>
+        <!-- Lyrics scroll -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rv_lyrics"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:paddingVertical="16dp"
+            android:paddingHorizontal="20dp"
+            android:clipToPadding="false"
+            android:scrollbars="none"/>
+
+        <LinearLayout
+            android:id="@+id/layout_lyrics_state"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="24dp">
+
+            <ProgressBar
+                android:id="@+id/progress_lyrics"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_marginBottom="12dp"
+                android:visibility="gone"/>
+
+            <TextView
+                android:id="@+id/tv_no_lyrics"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/no_lyrics"
+                android:textColor="@color/dark_subtext"
+                android:textAlignment="center"
+                android:gravity="center"
+                android:visibility="gone"/>
+        </LinearLayout>
+    </FrameLayout>
 
 </LinearLayout>

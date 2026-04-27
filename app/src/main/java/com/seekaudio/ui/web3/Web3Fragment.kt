@@ -35,7 +35,7 @@ class Web3Fragment : Fragment() {
 
         // Connect button
         binding.btnConnectWallet.setOnClickListener {
-            showWalletPickerDialog()
+            // Web3 connection is intentionally disabled for now.
         }
 
         // Disconnect
@@ -122,30 +122,6 @@ class Web3Fragment : Fragment() {
             row.findViewById<android.widget.TextView>(R.id.tv_feature_desc).text  = desc
             binding.containerFeatures.addView(row)
         }
-    }
-
-    private fun showWalletPickerDialog() {
-        val wallets = arrayOf("🔐  Seed Vault (Recommended)", "👻  Phantom", "🎒  Backpack", "🌞  Solflare")
-        androidx.appcompat.app.AlertDialog.Builder(requireContext())
-            .setTitle("Connect Wallet")
-            .setItems(wallets) { _, which ->
-                val name = when (which) {
-                    0 -> "Seed Vault"
-                    1 -> "Phantom"
-                    2 -> "Backpack"
-                    else -> "Solflare"
-                }
-                // Simulate wallet connection with mock data
-                vm.connectWallet(
-                    walletName  = name,
-                    address     = "7xKp3GhRsTmNq9wBvYcPdLeF2Xa8Jk4nZoU",
-                    solBalance  = 4.821,
-                    skrBalance  = 1240L,
-                    skrPending  = 85L,
-                )
-            }
-            .setNegativeButton("Skip for now", null)
-            .show()
     }
 
     private fun shortAddr(addr: String): String =

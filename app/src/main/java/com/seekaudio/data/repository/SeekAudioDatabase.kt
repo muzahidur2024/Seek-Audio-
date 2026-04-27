@@ -28,6 +28,12 @@ interface SongDao {
     @Query("SELECT * FROM songs WHERE id = :id")
     suspend fun getSongById(id: Long): Song?
 
+    @Query("SELECT * FROM songs WHERE uri = :uri LIMIT 1")
+    suspend fun getSongByUri(uri: String): Song?
+
+    @Query("SELECT * FROM songs")
+    suspend fun getAllSongsSnapshot(): List<Song>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(songs: List<Song>)
 
@@ -60,6 +66,9 @@ interface SongDao {
 
     @Query("SELECT * FROM songs ORDER BY lastPlayed DESC LIMIT :limit")
     fun getRecentlyPlayed(limit: Int = 20): Flow<List<Song>>
+
+    @Query("DELETE FROM songs WHERE id = :id")
+    suspend fun deleteById(id: Long)
 }
 
 @Dao
@@ -79,8 +88,8 @@ interface PlaylistDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun addSongToPlaylist(ref: PlaylistSongCrossRef)
 
-    @Delete
-    suspend fun removeSongFromPlaylist(ref: PlaylistSongCrossRef)
+    @Query("DELETE FROM playlist_songs WHERE playlistId = :playlistId AND songId = :songId")
+    suspend fun removeSongFromPlaylist(playlistId: Long, songId: Long)
 
     @Query("SELECT * FROM playlist_songs WHERE playlistId = :playlistId ORDER BY position ASC")
     suspend fun getSongsInPlaylist(playlistId: Long): List<PlaylistSongCrossRef>

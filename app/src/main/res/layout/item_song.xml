@@ -76,7 +76,7 @@
             android:layout_width="32dp"
             android:layout_height="32dp"
             android:background="@android:color/transparent"
-            android:src="@drawable/ic_edit"
+            android:src="@android:drawable/ic_menu_more"
             android:alpha="0.5"
             android:padding="6dp"
             app:layout_constraintEnd_toStartOf="@id/btn_like"

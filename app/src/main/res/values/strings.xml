@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Seek Audio</string>
+    <string name="app_name">Audio Seeker</string>
 
     <!-- Navigation -->
     <string name="nav_player">Player</string>
@@ -12,6 +12,7 @@
     <string name="play">Play</string>
     <string name="pause">Pause</string>
     <string name="next">Next</string>
+    <string name="close">Close</string>
     <string name="previous">Previous</string>
     <string name="shuffle">Shuffle</string>
     <string name="repeat">Repeat</string>
@@ -63,6 +64,7 @@
     <!-- Lyrics -->
     <string name="no_lyrics">No lyrics available for this track</string>
     <string name="sync_offset">Sync Offset</string>
+    <string name="lyrics_loading">Loading lyrics…</string>
 
     <!-- Artist -->
     <string name="about">About</string>
@@ -118,4 +120,20 @@
     <string name="connected">CONNECTED</string>
     <string name="secure">✓ Secure</string>
     <string name="seed_vault">Seed Vault Wallet</string>
+    <string name="coming_soon">Coming Soon</string>
+    <string name="menu_enqueue">Enqueue</string>
+    <string name="menu_share">Share</string>
+    <string name="menu_set_ringtone">Set as ringtone</string>
+    <string name="menu_delete">Delete</string>
+    <string name="delete_song_title">Delete song?</string>
+    <string name="delete_song_message">Choose whether to delete only from app list or also from your device.</string>
+    <string name="delete_from_device_checkbox">Also delete from this device</string>
+    <string name="deleted_success">Song deleted</string>
+    <string name="deleted_from_list">Removed from list</string>
+    <string name="deleted_failed">Could not delete song from device</string>
+    <string name="enqueued">Added to queue</string>
+    <string name="player_not_ready">Player is not ready yet</string>
+    <string name="ringtone_set">Ringtone updated</string>
+    <string name="ringtone_permission_needed">Allow modify system settings to set ringtone</string>
+    <string name="ringtone_failed">Could not set ringtone</string>
 </resources>
