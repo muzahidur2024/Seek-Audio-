@@ -1,7 +1,9 @@
 package com.seekaudio.ui
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.result.contract.ActivityResultContracts
@@ -53,6 +55,7 @@ class MainActivity : AppCompatActivity() {
         setupMiniPlayer()
         checkPermissions()
         playerViewModel.initController()
+        handleIncomingAudioIntent(intent)
     }
 
     private fun setupNavigation() {
@@ -166,6 +169,29 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun onPermissionsGranted() { playerViewModel.scanDevice() }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleIncomingAudioIntent(intent)
+    }
+
+    private fun handleIncomingAudioIntent(intent: Intent?) {
+        if (intent?.action != Intent.ACTION_VIEW) return
+        val dataUri = intent.data ?: return
+        if (!isSupportedExternalAudioUri(dataUri, intent.type)) return
+        playerViewModel.playFromExternalUri(dataUri)
+    }
+
+    private fun isSupportedExternalAudioUri(uri: Uri, mimeType: String?): Boolean {
+        val scheme = uri.scheme?.lowercase().orEmpty()
+        if (scheme != "content" && scheme != "file") return false
+        if (mimeType != null && !mimeType.startsWith("audio/")) return false
+        return runCatching {
+            contentResolver.openAssetFileDescriptor(uri, "r")?.close()
+            true
+        }.getOrDefault(false)
+    }
 
     private fun showPermissionRationale() {
         androidx.appcompat.app.AlertDialog.Builder(this)

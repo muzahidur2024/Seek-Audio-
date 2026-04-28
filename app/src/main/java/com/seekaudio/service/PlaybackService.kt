@@ -41,26 +41,35 @@ class PlaybackService : MediaSessionService() {
             session: MediaSession,
             controller: MediaSession.ControllerInfo,
         ): MediaSession.ConnectionResult {
-            val sessionCommands = MediaSession.ConnectionResult.DEFAULT_SESSION_COMMANDS.buildUpon()
-                .add(closeNotificationCommand)
-                .build()
+            val allowCloseCommand = controller.packageName == packageName
+            val sessionCommandsBuilder = MediaSession.ConnectionResult.DEFAULT_SESSION_COMMANDS.buildUpon()
+            if (allowCloseCommand) {
+                sessionCommandsBuilder.add(closeNotificationCommand)
+            }
+            val sessionCommands = sessionCommandsBuilder.build()
 
             val playerCommands = MediaSession.ConnectionResult.DEFAULT_PLAYER_COMMANDS.buildUpon()
                 .add(Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM)
                 .build()
 
-            val mediaButtons = ImmutableList.of(
+            val mediaButtonsBuilder = ImmutableList.builder<CommandButton>()
+            mediaButtonsBuilder.add(
                 CommandButton.Builder()
                     .setDisplayName(getString(R.string.next))
                     .setPlayerCommand(Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM)
                     .setIconResId(R.drawable.ic_skip_next)
-                    .build(),
-                CommandButton.Builder()
+                    .build()
+            )
+            if (allowCloseCommand) {
+                mediaButtonsBuilder.add(
+                    CommandButton.Builder()
                     .setDisplayName(getString(R.string.close))
                     .setSessionCommand(closeNotificationCommand)
                     .setIconResId(R.drawable.ic_close)
-                    .build(),
-            )
+                    .build()
+                )
+            }
+            val mediaButtons = mediaButtonsBuilder.build()
 
             return MediaSession.ConnectionResult.AcceptedResultBuilder(session)
                 .setAvailableSessionCommands(sessionCommands)
@@ -75,8 +84,12 @@ class PlaybackService : MediaSessionService() {
             customCommand: SessionCommand,
             args: Bundle,
         ) = if (customCommand.customAction == CUSTOM_COMMAND_CLOSE_NOTIFICATION) {
-            stopPlaybackAndService()
-            Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
+            if (controller.packageName == packageName) {
+                stopPlaybackAndService()
+                Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
+            } else {
+                Futures.immediateFuture(SessionResult(SessionResult.RESULT_ERROR_PERMISSION_DENIED))
+            }
         } else {
             Futures.immediateFuture(SessionResult(SessionResult.RESULT_ERROR_NOT_SUPPORTED))
         }

@@ -297,20 +297,20 @@
                     android:id="@+id/btn_sleep"
                     style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                     android:layout_width="0dp"
-                    android:layout_height="36dp"
+                    android:layout_height="40dp"
                     android:layout_weight="1"
                     android:layout_marginEnd="8dp"
-                    android:text="💤 Sleep"
-                    android:textSize="11sp" />
+                    android:text="@string/sleep_timer"
+                    android:textSize="12sp" />
 
                 <Button
                     android:id="@+id/btn_drive"
                     style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                     android:layout_width="0dp"
-                    android:layout_height="36dp"
+                    android:layout_height="40dp"
                     android:layout_weight="1"
                     android:text="@string/driving_mode"
-                    android:textSize="11sp" />
+                    android:textSize="12sp" />
             </LinearLayout>
 
             <LinearLayout
@@ -323,20 +323,20 @@
                     android:id="@+id/btn_speed"
                     style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                     android:layout_width="0dp"
-                    android:layout_height="36dp"
+                    android:layout_height="40dp"
                     android:layout_weight="1"
                     android:layout_marginEnd="8dp"
-                    android:text="1.0× Speed"
-                    android:textSize="11sp" />
+                    android:text="1.0x Speed"
+                    android:textSize="12sp" />
 
                 <Button
                     android:id="@+id/btn_crossfade"
                     style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                     android:layout_width="0dp"
-                    android:layout_height="36dp"
+                    android:layout_height="40dp"
                     android:layout_weight="1"
-                    android:text="⟺ Crossfade"
-                    android:textSize="11sp" />
+                    android:text="@string/crossfade"
+                    android:textSize="12sp" />
             </LinearLayout>
 
         </LinearLayout>

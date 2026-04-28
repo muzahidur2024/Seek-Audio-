@@ -9,7 +9,8 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="20dp">
+        android:padding="20dp"
+        android:paddingBottom="28dp">
 
         <!-- Header -->
         <LinearLayout
@@ -21,7 +22,7 @@
 
             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="💤" android:textSize="44sp" android:layout_marginBottom="8dp"/>
             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/sleep_timer_title" android:textColor="@color/dark_text" android:textSize="20sp" android:textStyle="bold"/>
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/sleep_timer_desc" android:textColor="@color/dark_subtext" android:textSize="13sp" android:layout_marginTop="4dp"/>
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/sleep_timer_desc" android:textColor="@color/dark_subtext" android:textSize="13sp" android:layout_marginTop="4dp" android:gravity="center"/>
 
         </LinearLayout>
 
@@ -67,17 +68,17 @@
             android:rowCount="3"
             android:layout_marginBottom="24dp">
 
-            <Button android:id="@+id/btn_sleep_5"  style="@style/Widget.MaterialComponents.Button.OutlinedButton" android:layout_width="0dp" android:layout_columnWeight="1" android:layout_height="80dp" android:layout_margin="5dp" android:text="5 min\nauto stop" android:textAlignment="center"/>
-            <Button android:id="@+id/btn_sleep_15" style="@style/Widget.MaterialComponents.Button.OutlinedButton" android:layout_width="0dp" android:layout_columnWeight="1" android:layout_height="80dp" android:layout_margin="5dp" android:text="15 min\nauto stop" android:textAlignment="center"/>
-            <Button android:id="@+id/btn_sleep_30" style="@style/Widget.MaterialComponents.Button.OutlinedButton" android:layout_width="0dp" android:layout_columnWeight="1" android:layout_height="80dp" android:layout_margin="5dp" android:text="30 min\nauto stop" android:textAlignment="center"/>
-            <Button android:id="@+id/btn_sleep_45" style="@style/Widget.MaterialComponents.Button.OutlinedButton" android:layout_width="0dp" android:layout_columnWeight="1" android:layout_height="80dp" android:layout_margin="5dp" android:text="45 min\nauto stop" android:textAlignment="center"/>
-            <Button android:id="@+id/btn_sleep_60" style="@style/Widget.MaterialComponents.Button.OutlinedButton" android:layout_width="0dp" android:layout_columnWeight="1" android:layout_height="80dp" android:layout_margin="5dp" android:text="1 hour\nauto stop" android:textAlignment="center"/>
-            <Button android:id="@+id/btn_sleep_track" style="@style/Widget.MaterialComponents.Button.OutlinedButton" android:layout_width="0dp" android:layout_columnWeight="1" android:layout_height="80dp" android:layout_margin="5dp" android:text="End of Track\nafter this track" android:textAlignment="center"/>
+            <Button android:id="@+id/btn_sleep_5"  style="@style/Widget.MaterialComponents.Button.OutlinedButton" android:layout_width="0dp" android:layout_columnWeight="1" android:layout_height="84dp" android:layout_margin="5dp" android:text="5 min&#10;Auto stop" android:textAlignment="center" android:gravity="center" android:textSize="12sp" android:lineSpacingExtra="1dp"/>
+            <Button android:id="@+id/btn_sleep_15" style="@style/Widget.MaterialComponents.Button.OutlinedButton" android:layout_width="0dp" android:layout_columnWeight="1" android:layout_height="84dp" android:layout_margin="5dp" android:text="15 min&#10;Auto stop" android:textAlignment="center" android:gravity="center" android:textSize="12sp" android:lineSpacingExtra="1dp"/>
+            <Button android:id="@+id/btn_sleep_30" style="@style/Widget.MaterialComponents.Button.OutlinedButton" android:layout_width="0dp" android:layout_columnWeight="1" android:layout_height="84dp" android:layout_margin="5dp" android:text="30 min&#10;Auto stop" android:textAlignment="center" android:gravity="center" android:textSize="12sp" android:lineSpacingExtra="1dp"/>
+            <Button android:id="@+id/btn_sleep_45" style="@style/Widget.MaterialComponents.Button.OutlinedButton" android:layout_width="0dp" android:layout_columnWeight="1" android:layout_height="84dp" android:layout_margin="5dp" android:text="45 min&#10;Auto stop" android:textAlignment="center" android:gravity="center" android:textSize="12sp" android:lineSpacingExtra="1dp"/>
+            <Button android:id="@+id/btn_sleep_60" style="@style/Widget.MaterialComponents.Button.OutlinedButton" android:layout_width="0dp" android:layout_columnWeight="1" android:layout_height="84dp" android:layout_margin="5dp" android:text="1 hour&#10;Auto stop" android:textAlignment="center" android:gravity="center" android:textSize="12sp" android:lineSpacingExtra="1dp"/>
+            <Button android:id="@+id/btn_sleep_track" style="@style/Widget.MaterialComponents.Button.OutlinedButton" android:layout_width="0dp" android:layout_columnWeight="1" android:layout_height="84dp" android:layout_margin="5dp" android:text="End of track&#10;After this track" android:textAlignment="center" android:gravity="center" android:textSize="12sp" android:lineSpacingExtra="1dp"/>
 
         </GridLayout>
 
         <!-- Fade out section -->
-        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="FADE OUT" android:textColor="@color/dark_subtext" android:textSize="10sp" android:letterSpacing="0.14" android:layout_marginBottom="10dp"/>
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/fade_out" android:textColor="@color/dark_subtext" android:textSize="11sp" android:letterSpacing="0.08" android:layout_marginBottom="10dp"/>
 
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
 

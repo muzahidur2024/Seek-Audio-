@@ -3,6 +3,7 @@ package com.seekaudio.ui.player
 import android.content.ComponentName
 import android.content.Context
 import android.content.SharedPreferences
+import android.net.Uri
 import android.media.audiofx.BassBoost
 import android.media.audiofx.Equalizer
 import android.media.audiofx.Virtualizer
@@ -66,6 +67,7 @@ class PlayerViewModel @Inject constructor(
     private var restoredState = false
     private var lastPersistMs = 0L
     private var pendingPlaybackRequest: PendingPlaybackRequest? = null
+    private var pendingExternalUri: String? = null
     private var lastPlayCountSongId: Long? = null
     private var syncCurrentSongJob: Job? = null
     private var lastObservedMediaItemKey: String? = null
@@ -122,6 +124,7 @@ class PlayerViewModel @Inject constructor(
             syncCurrentSongFromController()
             restoreLastPlaybackIfNeeded()
             processPendingPlaybackIfAny()
+            processPendingExternalUriIfAny()
             startProgressTracking()
         }, MoreExecutors.directExecutor())
     }
@@ -336,6 +339,47 @@ class PlayerViewModel @Inject constructor(
         pendingPlaybackRequest = null
         val ctrl = controller ?: return
         playSongInternal(ctrl, request.song, request.queue)
+    }
+
+    fun playFromExternalUri(uri: Uri): Boolean {
+        val normalizedUri = uri.normalizeScheme().toString()
+        val ctrl = controller
+        if (ctrl == null) {
+            pendingExternalUri = normalizedUri
+            return false
+        }
+        playFromExternalUriInternal(ctrl, uri)
+        return true
+    }
+
+    private fun processPendingExternalUriIfAny() {
+        val uriString = pendingExternalUri ?: return
+        pendingExternalUri = null
+        val ctrl = controller ?: return
+        playFromExternalUriInternal(ctrl, Uri.parse(uriString))
+    }
+
+    private fun playFromExternalUriInternal(ctrl: MediaController, uri: Uri) {
+        viewModelScope.launch {
+            val normalizedUri = uri.normalizeScheme().toString()
+            val resolvedSong = mediaRepository.getSongByUri(normalizedUri)
+                ?: mediaRepository.getAllSongsSnapshot().firstOrNull { song ->
+                    song.contentUri.normalizeScheme().toString() == normalizedUri
+                }
+
+            val songToPlay = resolvedSong ?: Song(
+                id = -System.currentTimeMillis(),
+                title = uri.lastPathSegment?.substringAfterLast('/')?.ifBlank { "Unknown Title" } ?: "Unknown Title",
+                artist = "Unknown Artist",
+                album = "Unknown Album",
+                albumId = 0L,
+                duration = 0L,
+                path = "",
+                uri = normalizedUri,
+            )
+
+            playSongInternal(ctrl, songToPlay, listOf(songToPlay))
+        }
     }
 
     fun playPause()  { controller?.let { if (it.isPlaying) it.pause() else it.play() } }
