@@ -22,3 +22,9 @@
 
 # Model classes
 -keep class com.seekaudio.data.model.** { *; }
+
+# Playback/session classes can be sensitive to shrinking in release.
+-keep class com.seekaudio.service.PlaybackService { *; }
+-keep class com.seekaudio.service.PlaybackService$* { *; }
+-keep class com.seekaudio.ui.player.PlayerViewModel { *; }
+-keepattributes Signature,InnerClasses,EnclosingMethod,*Annotation*

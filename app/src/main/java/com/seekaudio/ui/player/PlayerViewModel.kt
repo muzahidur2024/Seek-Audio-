@@ -67,6 +67,7 @@ class PlayerViewModel @Inject constructor(
     private var restoredState = false
     private var lastPersistMs = 0L
     private var pendingPlaybackRequest: PendingPlaybackRequest? = null
+    private val pendingEnqueuedSongs = mutableListOf<Song>()
     private var pendingExternalUri: String? = null
     private var lastPlayCountSongId: Long? = null
     private var syncCurrentSongJob: Job? = null
@@ -124,6 +125,7 @@ class PlayerViewModel @Inject constructor(
             syncCurrentSongFromController()
             restoreLastPlaybackIfNeeded()
             processPendingPlaybackIfAny()
+            processPendingEnqueuesIfAny()
             processPendingExternalUriIfAny()
             startProgressTracking()
         }, MoreExecutors.directExecutor())
@@ -385,9 +387,37 @@ class PlayerViewModel @Inject constructor(
     fun playPause()  { controller?.let { if (it.isPlaying) it.pause() else it.play() } }
     fun next() {
         controller?.let { ctrl ->
+            if (ctrl.repeatMode == Player.REPEAT_MODE_ONE) {
+                ctrl.seekTo(0L)
+                if (!ctrl.isPlaying) ctrl.play()
+                return@let
+            }
+            val canNext = ctrl.isCommandAvailable(Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM) ||
+                ctrl.isCommandAvailable(Player.COMMAND_SEEK_TO_NEXT)
+            if (!canNext) {
+                if (ctrl.shuffleModeEnabled) moveByLibraryRandom()
+                else moveByLibraryOffset(+1, wrap = ctrl.repeatMode == Player.REPEAT_MODE_ALL)
+                return@let
+            }
             val count = ctrl.mediaItemCount
             if (count <= 1) {
-                moveByLibraryOffset(+1)
+                when {
+                    ctrl.repeatMode == Player.REPEAT_MODE_ONE -> {
+                        ctrl.seekTo(0L)
+                        if (!ctrl.isPlaying) ctrl.play()
+                    }
+                    ctrl.shuffleModeEnabled -> moveByLibraryRandom()
+                    else -> moveByLibraryOffset(+1, wrap = ctrl.repeatMode == Player.REPEAT_MODE_ALL)
+                }
+                return
+            }
+            if (ctrl.shuffleModeEnabled) {
+                val current = ctrl.currentMediaItemIndex.coerceAtLeast(0)
+                ctrl.seekToNextMediaItem()
+                if (ctrl.currentMediaItemIndex == current && count > 1) {
+                    val randomTarget = (0 until count).filter { it != current }.random()
+                    ctrl.seekToDefaultPosition(randomTarget)
+                }
                 return
             }
             val current = ctrl.currentMediaItemIndex.coerceAtLeast(0)
@@ -401,13 +431,41 @@ class PlayerViewModel @Inject constructor(
     }
     fun previous() {
         controller?.let { ctrl ->
+            if (ctrl.repeatMode == Player.REPEAT_MODE_ONE) {
+                ctrl.seekTo(0L)
+                if (!ctrl.isPlaying) ctrl.play()
+                return@let
+            }
+            val canPrevious = ctrl.isCommandAvailable(Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM) ||
+                ctrl.isCommandAvailable(Player.COMMAND_SEEK_TO_PREVIOUS)
+            if (!canPrevious) {
+                if (ctrl.shuffleModeEnabled) moveByLibraryRandom()
+                else moveByLibraryOffset(-1, wrap = ctrl.repeatMode == Player.REPEAT_MODE_ALL)
+                return@let
+            }
             if (ctrl.currentPosition > 3000L) {
                 ctrl.seekTo(0L)
                 return
             }
             val count = ctrl.mediaItemCount
             if (count <= 1) {
-                moveByLibraryOffset(-1)
+                when {
+                    ctrl.repeatMode == Player.REPEAT_MODE_ONE -> {
+                        ctrl.seekTo(0L)
+                        if (!ctrl.isPlaying) ctrl.play()
+                    }
+                    ctrl.shuffleModeEnabled -> moveByLibraryRandom()
+                    else -> moveByLibraryOffset(-1, wrap = ctrl.repeatMode == Player.REPEAT_MODE_ALL)
+                }
+                return
+            }
+            if (ctrl.shuffleModeEnabled) {
+                val current = ctrl.currentMediaItemIndex.coerceAtLeast(0)
+                ctrl.seekToPreviousMediaItem()
+                if (ctrl.currentMediaItemIndex == current && count > 1) {
+                    val randomTarget = (0 until count).filter { it != current }.random()
+                    ctrl.seekToDefaultPosition(randomTarget)
+                }
                 return
             }
             val current = ctrl.currentMediaItemIndex.coerceAtLeast(0)
@@ -420,7 +478,7 @@ class PlayerViewModel @Inject constructor(
         }
     }
 
-    private fun moveByLibraryOffset(offset: Int) {
+    private fun moveByLibraryOffset(offset: Int, wrap: Boolean = false) {
         viewModelScope.launch {
             val songs = mediaRepository.getAllSongsSnapshot()
                 .sortedBy { it.title.lowercase() }
@@ -429,12 +487,29 @@ class PlayerViewModel @Inject constructor(
             val currentIndex = songs.indexOfFirst { song ->
                 song.id == current?.id || (current != null && song.uri == current.uri)
             }.takeIf { it >= 0 } ?: 0
-            val target = (currentIndex + offset).coerceIn(0, songs.lastIndex)
+            val target = if (wrap) {
+                (((currentIndex + offset) % songs.size) + songs.size) % songs.size
+            } else {
+                (currentIndex + offset).coerceIn(0, songs.lastIndex)
+            }
             if (target != currentIndex) {
                 playSong(songs[target], songs)
             } else if (offset < 0) {
                 seekTo(0L)
             }
+        }
+    }
+
+    private fun moveByLibraryRandom() {
+        viewModelScope.launch {
+            val songs = mediaRepository.getAllSongsSnapshot()
+            if (songs.isEmpty()) return@launch
+            val current = _currentSong.value
+            val candidates = songs.filterNot { song ->
+                song.id == current?.id || (current != null && song.uri == current.uri)
+            }
+            val targetSong = (if (candidates.isNotEmpty()) candidates else songs).random()
+            playSong(targetSong, songs)
         }
     }
 
@@ -482,7 +557,27 @@ class PlayerViewModel @Inject constructor(
     }
 
     fun enqueueSong(song: Song): Boolean {
-        val ctrl = controller ?: return false
+        val ctrl = controller
+        if (ctrl == null) {
+            if (pendingEnqueuedSongs.none { it.id == song.id && it.uri == song.uri }) {
+                pendingEnqueuedSongs.add(song)
+            }
+            _queue.update { current ->
+                if (current.any { it.id == song.id && it.uri == song.uri }) current else current + song
+            }
+            return false
+        }
+        val canMutateQueue = ctrl.isCommandAvailable(Player.COMMAND_CHANGE_MEDIA_ITEMS) ||
+            ctrl.isCommandAvailable(Player.COMMAND_SET_MEDIA_ITEM)
+        if (!canMutateQueue) {
+            if (pendingEnqueuedSongs.none { it.id == song.id && it.uri == song.uri }) {
+                pendingEnqueuedSongs.add(song)
+            }
+            _queue.update { current ->
+                if (current.any { it.id == song.id && it.uri == song.uri }) current else current + song
+            }
+            return false
+        }
         val item = MediaItem.Builder()
             .setUri(song.contentUri)
             .setMediaId(song.id.toString())
@@ -494,7 +589,17 @@ class PlayerViewModel @Inject constructor(
                     .build()
             ).build()
         return runCatching {
-            ctrl.addMediaItem(item)
+            if (ctrl.mediaItemCount == 0) {
+                ctrl.setMediaItem(item)
+                ctrl.prepare()
+                _currentSong.value = song
+                _currentIndex.value = 0
+            } else {
+                ctrl.addMediaItem(item)
+            }
+            _queue.update { current ->
+                if (current.any { it.id == song.id && it.uri == song.uri }) current else current + song
+            }
             viewModelScope.launch {
                 syncQueueWithController()
             }
@@ -503,10 +608,18 @@ class PlayerViewModel @Inject constructor(
         }.getOrDefault(false)
     }
 
+    private fun processPendingEnqueuesIfAny() {
+        if (pendingEnqueuedSongs.isEmpty()) return
+        val items = pendingEnqueuedSongs.toList()
+        pendingEnqueuedSongs.clear()
+        items.forEach { enqueueSong(it) }
+    }
+
     private suspend fun syncQueueWithController() {
         val ctrl = controller ?: return
         val rebuiltQueue = (0 until ctrl.mediaItemCount).mapNotNull { index ->
-            resolveSongFromMediaItem(ctrl.getMediaItemAt(index))
+            val item = ctrl.getMediaItemAt(index)
+            resolveSongFromMediaItem(item) ?: buildFallbackSong(item, ctrl)
         }
         if (rebuiltQueue.isNotEmpty()) {
             _queue.value = rebuiltQueue
@@ -520,12 +633,20 @@ class PlayerViewModel @Inject constructor(
         val song = _currentSong.value ?: return
         val ctrl = controller ?: return
         val positionMs = ctrl.currentPosition.coerceAtLeast(0L)
-        playbackPrefs.edit()
+        val editor = playbackPrefs.edit()
             .putLong(KEY_LAST_SONG_ID, song.id)
             .putString(KEY_LAST_SONG_URI, song.uri)
             .putLong(KEY_LAST_POSITION_MS, positionMs)
             .putBoolean(KEY_LAST_WAS_PLAYING, ctrl.isPlaying)
-            .apply()
+            .putBoolean(KEY_LAST_SHUFFLE_ENABLED, ctrl.shuffleModeEnabled)
+            .putInt(KEY_LAST_REPEAT_MODE, ctrl.repeatMode)
+        // Use synchronous commit for lifecycle-critical saves (onStop/onCleared) so
+        // release builds don't lose state when process is terminated immediately.
+        if (force) {
+            editor.commit()
+        } else {
+            editor.apply()
+        }
         lastPersistMs = now
     }
 
@@ -544,14 +665,22 @@ class PlayerViewModel @Inject constructor(
         val savedPosition = playbackPrefs.getLong(KEY_LAST_POSITION_MS, 0L).coerceAtLeast(0L)
         val savedSongId = playbackPrefs.getLong(KEY_LAST_SONG_ID, -1L)
         val savedSongUri = playbackPrefs.getString(KEY_LAST_SONG_URI, null).orEmpty()
+        val savedShuffleEnabled = playbackPrefs.getBoolean(KEY_LAST_SHUFFLE_ENABLED, false)
+        val savedRepeatMode = playbackPrefs.getInt(KEY_LAST_REPEAT_MODE, Player.REPEAT_MODE_OFF).let {
+            when (it) {
+                Player.REPEAT_MODE_ONE,
+                Player.REPEAT_MODE_ALL,
+                Player.REPEAT_MODE_OFF -> it
+                else -> Player.REPEAT_MODE_OFF
+            }
+        }
         if (savedSongId <= 0L && savedSongUri.isBlank()) return
 
         viewModelScope.launch {
-            val restoredSong = when {
-                savedSongId > 0L -> mediaRepository.getSongById(savedSongId)
-                savedSongUri.isNotBlank() -> mediaRepository.getSongByUri(savedSongUri)
-                else -> null
-            } ?: return@launch
+            val restoredSong = (
+                mediaRepository.getSongById(savedSongId).takeIf { savedSongId > 0L }
+                    ?: mediaRepository.getSongByUri(savedSongUri).takeIf { savedSongUri.isNotBlank() }
+            ) ?: return@launch
 
             _queue.value = listOf(restoredSong)
             _currentSong.value = restoredSong
@@ -569,6 +698,8 @@ class PlayerViewModel @Inject constructor(
                 )
                 .build()
 
+            ctrl.shuffleModeEnabled = savedShuffleEnabled
+            ctrl.repeatMode = savedRepeatMode
             ctrl.setMediaItem(item, savedPosition)
             ctrl.prepare()
             if (savedPosition > 0L) _progressMs.value = savedPosition
@@ -801,5 +932,7 @@ class PlayerViewModel @Inject constructor(
         const val KEY_LAST_SONG_URI = "last_song_uri"
         const val KEY_LAST_POSITION_MS = "last_position_ms"
         const val KEY_LAST_WAS_PLAYING = "last_was_playing"
+        const val KEY_LAST_SHUFFLE_ENABLED = "last_shuffle_enabled"
+        const val KEY_LAST_REPEAT_MODE = "last_repeat_mode"
     }
 }
