@@ -18,6 +18,10 @@ class MediaRepository @Inject constructor(
     private val songDao: SongDao,
     private val playlistDao: PlaylistDao,
 ) {
+    private val hiddenPrefs by lazy {
+        context.getSharedPreferences(HIDDEN_PREFS_NAME, Context.MODE_PRIVATE)
+    }
+
     // ── MediaStore scanner ────────────────────────────────────────────────────
 
     suspend fun scanDevice(): Int = withContext(Dispatchers.IO) {
@@ -88,8 +92,21 @@ class MediaRepository @Inject constructor(
         } catch (_: Exception) {
             return@withContext 0
         }
-        songDao.insertAll(songs)
-        songs.size
+        val hiddenIds = getHiddenSongIds()
+        val hiddenUris = getHiddenSongUris()
+        val visibleSongs = songs.filterNot { it.id in hiddenIds || it.uri in hiddenUris }
+
+        // Keep hidden sets from growing forever with stale entries.
+        val scannedIds = songs.mapTo(mutableSetOf()) { it.id }
+        val scannedUris = songs.mapTo(mutableSetOf()) { it.uri }
+        val prunedHiddenIds = hiddenIds.filterTo(mutableSetOf()) { it in scannedIds }
+        val prunedHiddenUris = hiddenUris.filterTo(mutableSetOf()) { it in scannedUris }
+        if (prunedHiddenIds != hiddenIds || prunedHiddenUris != hiddenUris) {
+            persistHiddenSets(prunedHiddenIds, prunedHiddenUris)
+        }
+
+        songDao.insertAll(visibleSongs)
+        visibleSongs.size
     }
 
     // ── Album art ─────────────────────────────────────────────────────────────
@@ -115,7 +132,16 @@ class MediaRepository @Inject constructor(
 
     suspend fun setLiked(id: Long, liked: Boolean) = songDao.setLiked(id, liked)
     suspend fun incrementPlayCount(id: Long)        = songDao.incrementPlayCount(id)
-    suspend fun deleteFromLibrary(id: Long)         = songDao.deleteById(id)
+    suspend fun deleteFromLibrary(song: Song) {
+        songDao.deleteById(song.id)
+        val hiddenIds = getHiddenSongIds()
+        val hiddenUris = getHiddenSongUris()
+        hiddenIds.add(song.id)
+        if (song.uri.isNotBlank()) {
+            hiddenUris.add(song.uri)
+        }
+        persistHiddenSets(hiddenIds, hiddenUris)
+    }
     suspend fun updateTags(id: Long, title: String, artist: String, album: String, genre: String, year: Int) =
         songDao.updateTags(id, title, artist, album, genre, year)
     suspend fun deleteFromDeviceAndLibrary(song: Song): Boolean = withContext(Dispatchers.IO) {
@@ -126,6 +152,11 @@ class MediaRepository @Inject constructor(
         }
         if (deleted) {
             songDao.deleteById(song.id)
+            val hiddenIds = getHiddenSongIds()
+            val hiddenUris = getHiddenSongUris()
+            hiddenIds.remove(song.id)
+            hiddenUris.remove(song.uri)
+            persistHiddenSets(hiddenIds, hiddenUris)
         }
         deleted
     }
@@ -140,4 +171,25 @@ class MediaRepository @Inject constructor(
         playlistDao.addSongToPlaylist(com.seekaudio.data.model.PlaylistSongCrossRef(playlistId, songId, pos))
     suspend fun removeFromPlaylist(playlistId: Long, songId: Long) =
         playlistDao.removeSongFromPlaylist(playlistId, songId)
+
+    private fun getHiddenSongIds(): MutableSet<Long> {
+        val raw = hiddenPrefs.getStringSet(KEY_HIDDEN_SONG_IDS, emptySet()).orEmpty()
+        return raw.mapNotNull { it.toLongOrNull() }.toMutableSet()
+    }
+
+    private fun getHiddenSongUris(): MutableSet<String> =
+        hiddenPrefs.getStringSet(KEY_HIDDEN_SONG_URIS, emptySet()).orEmpty().toMutableSet()
+
+    private fun persistHiddenSets(ids: Set<Long>, uris: Set<String>) {
+        hiddenPrefs.edit()
+            .putStringSet(KEY_HIDDEN_SONG_IDS, ids.map { it.toString() }.toSet())
+            .putStringSet(KEY_HIDDEN_SONG_URIS, uris.toSet())
+            .apply()
+    }
+
+    private companion object {
+        const val HIDDEN_PREFS_NAME = "library_prefs"
+        const val KEY_HIDDEN_SONG_IDS = "hidden_song_ids"
+        const val KEY_HIDDEN_SONG_URIS = "hidden_song_uris"
+    }
 }

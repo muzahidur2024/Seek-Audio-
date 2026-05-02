@@ -45,6 +45,8 @@ class QueueFragment : Fragment() {
             this.adapter  = adapter
         }
 
+        binding.btnClearQueue.setOnClickListener { vm.clearQueue() }
+
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 launch {

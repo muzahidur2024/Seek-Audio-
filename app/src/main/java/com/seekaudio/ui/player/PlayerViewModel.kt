@@ -68,6 +68,7 @@ class PlayerViewModel @Inject constructor(
     private var lastPersistMs = 0L
     private var pendingPlaybackRequest: PendingPlaybackRequest? = null
     private val pendingEnqueuedSongs = mutableListOf<Song>()
+    private var enqueueInsertIndex: Int? = null
     private var pendingExternalUri: String? = null
     private var lastPlayCountSongId: Long? = null
     private var syncCurrentSongJob: Job? = null
@@ -228,16 +229,18 @@ class PlayerViewModel @Inject constructor(
         val ctrl = controller ?: return
         syncCurrentSongJob?.cancel()
         syncCurrentSongJob = viewModelScope.launch {
-            if (_queue.value.isEmpty()) {
-                val controllerItems = (0 until ctrl.mediaItemCount).map { index ->
-                    ctrl.getMediaItemAt(index)
-                }
-                val restoredQueue = controllerItems.mapNotNull { item ->
-                    resolveSongFromMediaItem(item)
-                }
-                if (restoredQueue.isNotEmpty()) {
-                    _queue.value = restoredQueue
-                }
+            val controllerItems = (0 until ctrl.mediaItemCount).map { index ->
+                ctrl.getMediaItemAt(index)
+            }
+            val restoredQueue = controllerItems.mapNotNull { item ->
+                resolveSongFromMediaItem(item) ?: buildFallbackSong(item, ctrl)
+            }
+            if (restoredQueue.isNotEmpty()) {
+                _queue.value = restoredQueue
+            }
+
+            if (pendingEnqueuedSongs.isNotEmpty()) {
+                processPendingEnqueuesIfAny()
             }
 
             syncCurrentSong()
@@ -314,6 +317,7 @@ class PlayerViewModel @Inject constructor(
     }
 
     private fun playSongInternal(ctrl: MediaController, song: Song, queue: List<Song>) {
+        enqueueInsertIndex = null
         _queue.value = queue
         val items = queue.map { s ->
             MediaItem.Builder()
@@ -412,12 +416,7 @@ class PlayerViewModel @Inject constructor(
                 return
             }
             if (ctrl.shuffleModeEnabled) {
-                val current = ctrl.currentMediaItemIndex.coerceAtLeast(0)
                 ctrl.seekToNextMediaItem()
-                if (ctrl.currentMediaItemIndex == current && count > 1) {
-                    val randomTarget = (0 until count).filter { it != current }.random()
-                    ctrl.seekToDefaultPosition(randomTarget)
-                }
                 return
             }
             val current = ctrl.currentMediaItemIndex.coerceAtLeast(0)
@@ -443,7 +442,7 @@ class PlayerViewModel @Inject constructor(
                 else moveByLibraryOffset(-1, wrap = ctrl.repeatMode == Player.REPEAT_MODE_ALL)
                 return@let
             }
-            if (ctrl.currentPosition > 3000L) {
+            if (!ctrl.shuffleModeEnabled && ctrl.currentPosition > 3000L) {
                 ctrl.seekTo(0L)
                 return
             }
@@ -460,12 +459,7 @@ class PlayerViewModel @Inject constructor(
                 return
             }
             if (ctrl.shuffleModeEnabled) {
-                val current = ctrl.currentMediaItemIndex.coerceAtLeast(0)
                 ctrl.seekToPreviousMediaItem()
-                if (ctrl.currentMediaItemIndex == current && count > 1) {
-                    val randomTarget = (0 until count).filter { it != current }.random()
-                    ctrl.seekToDefaultPosition(randomTarget)
-                }
                 return
             }
             val current = ctrl.currentMediaItemIndex.coerceAtLeast(0)
@@ -546,6 +540,13 @@ class PlayerViewModel @Inject constructor(
 
     fun setSearch(query: String) { _searchQuery.value = query }
 
+    fun clearQueue() {
+        controller?.clearMediaItems()
+        enqueueInsertIndex = null
+        _queue.value = emptyList()
+        _currentSong.value = null
+    }
+
     fun toggleLike(song: Song) {
         val liked = !song.isLiked
         viewModelScope.launch {
@@ -559,24 +560,16 @@ class PlayerViewModel @Inject constructor(
     fun enqueueSong(song: Song): Boolean {
         val ctrl = controller
         if (ctrl == null) {
-            if (pendingEnqueuedSongs.none { it.id == song.id && it.uri == song.uri }) {
-                pendingEnqueuedSongs.add(song)
-            }
-            _queue.update { current ->
-                if (current.any { it.id == song.id && it.uri == song.uri }) current else current + song
-            }
-            return false
+            pendingEnqueuedSongs.add(song)
+            _queue.update { current -> current + song }
+            return true
         }
         val canMutateQueue = ctrl.isCommandAvailable(Player.COMMAND_CHANGE_MEDIA_ITEMS) ||
             ctrl.isCommandAvailable(Player.COMMAND_SET_MEDIA_ITEM)
         if (!canMutateQueue) {
-            if (pendingEnqueuedSongs.none { it.id == song.id && it.uri == song.uri }) {
-                pendingEnqueuedSongs.add(song)
-            }
-            _queue.update { current ->
-                if (current.any { it.id == song.id && it.uri == song.uri }) current else current + song
-            }
-            return false
+            pendingEnqueuedSongs.add(song)
+            _queue.update { current -> current + song }
+            return true
         }
         val item = MediaItem.Builder()
             .setUri(song.contentUri)
@@ -594,14 +587,19 @@ class PlayerViewModel @Inject constructor(
                 ctrl.prepare()
                 _currentSong.value = song
                 _currentIndex.value = 0
+                _queue.value = listOf(song)
+                enqueueInsertIndex = 1
             } else {
-                ctrl.addMediaItem(item)
-            }
-            _queue.update { current ->
-                if (current.any { it.id == song.id && it.uri == song.uri }) current else current + song
-            }
-            viewModelScope.launch {
-                syncQueueWithController()
+                val currentIndex = ctrl.currentMediaItemIndex.coerceAtLeast(0)
+                val baseInsertIndex = (currentIndex + 1).coerceAtMost(ctrl.mediaItemCount)
+                val insertIndex = (enqueueInsertIndex ?: baseInsertIndex)
+                    .coerceIn(baseInsertIndex, ctrl.mediaItemCount)
+                ctrl.addMediaItem(insertIndex, item)
+                enqueueInsertIndex = insertIndex + 1
+                _queue.update { queue ->
+                    val boundedIndex = insertIndex.coerceIn(0, queue.size)
+                    queue.toMutableList().apply { add(boundedIndex, song) }
+                }
             }
             persistPlaybackState(force = true)
             true
@@ -623,6 +621,8 @@ class PlayerViewModel @Inject constructor(
         }
         if (rebuiltQueue.isNotEmpty()) {
             _queue.value = rebuiltQueue
+        } else {
+            enqueueInsertIndex = null
         }
         syncCurrentSong()
     }
@@ -712,8 +712,8 @@ class PlayerViewModel @Inject constructor(
         return mediaRepository.deleteFromDeviceAndLibrary(song)
     }
 
-    suspend fun deleteSongFromLibrary(songId: Long) {
-        mediaRepository.deleteFromLibrary(songId)
+    suspend fun deleteSongFromLibrary(song: Song) {
+        mediaRepository.deleteFromLibrary(song)
     }
 
     fun updateTags(songId: Long, title: String, artist: String, album: String, genre: String, year: Int) {

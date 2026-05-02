@@ -64,7 +64,7 @@ class LibraryFragment : Fragment() {
         pendingDeviceDeleteSong = null
         if (result.resultCode == android.app.Activity.RESULT_OK) {
             viewLifecycleOwner.lifecycleScope.launch {
-                vm.deleteSongFromLibrary(song.id)
+                vm.deleteSongFromLibrary(song)
                 toast(getString(R.string.deleted_success))
             }
         } else {
@@ -270,7 +270,7 @@ class LibraryFragment : Fragment() {
                     if (checkbox.isChecked) {
                         requestDeviceDelete(song)
                     } else {
-                        vm.deleteSongFromLibrary(song.id)
+                        vm.deleteSongFromLibrary(song)
                         toast(getString(R.string.deleted_from_list))
                     }
                 }
@@ -292,7 +292,7 @@ class LibraryFragment : Fragment() {
             val rows = resolver.delete(song.contentUri, null, null)
             if (rows > 0) {
                 viewLifecycleOwner.lifecycleScope.launch {
-                    vm.deleteSongFromLibrary(song.id)
+                    vm.deleteSongFromLibrary(song)
                     toast(getString(R.string.deleted_success))
                 }
             } else {
